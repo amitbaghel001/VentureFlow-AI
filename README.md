@@ -182,6 +182,25 @@ In `core/database.py`, add new SQLAlchemy models and CRUD functions following th
 
 ---
 
+## Deployment (Free)
+
+The easiest way to deploy EXIMIUS AI to the web is via **Streamlit Community Cloud**:
+
+1. Go to [share.streamlit.io](https://share.streamlit.io/) and log in with your GitHub account.
+2. Click **New app**.
+3. Fill in the details:
+   - **Repository:** `amitbaghel001/VentureFlow-AI`
+   - **Branch:** `main`
+   - **Main file path:** `0_Home_Dashboard.py`
+4. **CRITICAL STEP:** Click on **Advanced settings** (before deploying) and paste your API keys into the "Secrets" box exactly like your `.env` file:
+   ```toml
+   GROQ_API_KEY="gsk_your_key_here"
+   GEMINI_API_KEY="AIzaSy..."
+   ```
+5. Click **Deploy!** Your app will be live globally in about 2 minutes.
+
+---
+
 ## License
 
 Internal use only. Not for distribution.
