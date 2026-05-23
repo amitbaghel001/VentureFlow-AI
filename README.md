@@ -17,6 +17,31 @@ EXIMIUS AI is a production-ready MVP that gives venture analysts and GPs an AI-p
 
 ---
 
+## Architecture & Workflow
+
+```mermaid
+graph TD
+    A[User Input] -->|URL & Pitch| B[Startup Analyzer]
+    A -->|LinkedIn Bio| C[Founder Intelligence]
+    
+    B -- Evaluates Moat & Traction --> D[(Local SQLite Database)]
+    C -- Scores Domain & Execution --> D
+    
+    D --> E[Memo Generator]
+    E -- Compiles --> F[Investment Committee PDF]
+    
+    D --> G[Market Graph]
+    G -- Visualizes --> H[Interactive PyVis Network]
+    
+    I[Settings Panel] -- Routes to --> J((AI Engine))
+    J -. Powers .-> B
+    J -. Powers .-> C
+    J -. Powers .-> E
+    J -. Powers .-> G
+```
+
+---
+
 ## Setup (5 minutes)
 
 ### 1. Clone / download the project
