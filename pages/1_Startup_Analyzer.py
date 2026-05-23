@@ -1,5 +1,6 @@
 """
-EXIMIUS AI — Page 1: Startup Intelligence Analyzer
+VentureFlow AI — Page 1: Startup Analyzer
+Input a startup URL or description and get a structured intelligence analysis.
 """
 
 import sys, os
@@ -14,7 +15,7 @@ from core.ai_engine import analyze_startup, scrape_website
 from core.database import save_startup_analysis, get_all_startup_analyses
 
 st.set_page_config(
-    page_title="Startup Analyzer — EXIMIUS AI",
+    page_title="Startup Analyzer — VentureFlow AI",
     page_icon="🔍",
     layout="wide",
     initial_sidebar_state="expanded",

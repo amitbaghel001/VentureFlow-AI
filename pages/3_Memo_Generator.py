@@ -1,5 +1,6 @@
 """
-EXIMIUS AI — Page 3: Investment Memo Generator
+VentureFlow AI — Page 3: Memo Generator
+Compiles existing analyses into a structured investment committee memo.
 """
 
 import sys, os
@@ -16,7 +17,7 @@ from core.database import (
 from core.pdf_export import generate_memo_pdf
 
 st.set_page_config(
-    page_title="Memo Generator — EXIMIUS AI",
+    page_title="Memo Engine — VentureFlow AI",
     page_icon="📝",
     layout="wide",
     initial_sidebar_state="expanded",

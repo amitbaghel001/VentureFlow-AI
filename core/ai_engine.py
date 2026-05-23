@@ -1,6 +1,6 @@
 """
-EXIMIUS AI — AI Engine
-Handles all OpenAI API calls with structured JSON outputs.
+VentureFlow AI — Core AI Engine
+Handles all OpenAI / Gemini / Llama-3 integrations and prompt engineering.
 """
 
 import json
@@ -105,7 +105,9 @@ def _call_llm(system_prompt: str, user_prompt: str) -> dict[str, Any]:
 
 # ─── Startup Analysis ────────────────────────────────────────────────────────
 
-STARTUP_SYSTEM_PROMPT = """You are a senior investment analyst at a top-tier early-stage venture capital firm.
+STARTUP_SYSTEM_PROMPT = """
+You are VentureFlow AI, an institutional-grade venture capital analyst.
+Analyze the provided startup description/URL and output a highly structured JSON evaluation.
 Your job is to produce a rigorous, institutional-quality analysis of a startup.
 
 You MUST respond with a single valid JSON object matching this exact schema:
@@ -172,8 +174,9 @@ def analyze_startup(
 
 # ─── Founder Analysis ─────────────────────────────────────────────────────────
 
-FOUNDER_SYSTEM_PROMPT = """You are a senior partner at a leading venture capital firm specialising in founder evaluation.
-You assess founders with precision — looking for domain depth, execution velocity, and founder-market fit.
+FOUNDER_SYSTEM_PROMPT = """
+You are VentureFlow AI, an institutional-grade venture capital analyst.
+Profile the provided founder background (LinkedIn or raw text) and output a highly structured JSON evaluation.
 
 You MUST respond with a single valid JSON object matching this exact schema:
 {
@@ -221,8 +224,9 @@ def analyze_founder(bio_text: str) -> dict[str, Any]:
 
 # ─── Investment Memo ──────────────────────────────────────────────────────────
 
-MEMO_SYSTEM_PROMPT = """You are a principal at a top-tier early-stage VC firm drafting an investment committee memo.
-The memo must be institutional-quality — analytical, specific, and investment-ready.
+MEMO_SYSTEM_PROMPT = """
+You are VentureFlow AI, generating an institutional investment committee memo.
+Synthesize the provided analysis into a polished markdown document.
 
 You MUST respond with a single valid JSON object matching this exact schema:
 {

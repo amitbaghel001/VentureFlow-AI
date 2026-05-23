@@ -1,5 +1,5 @@
 """
-EXIMIUS AI — Page 4: Startup Market Graph
+VentureFlow AI — Page 4: Startup Market Graph
 Interactive competitive landscape visualization using PyVis.
 """
 
@@ -13,7 +13,7 @@ from core.ai_engine import generate_graph_data
 from core.database import get_all_startup_analyses
 
 st.set_page_config(
-    page_title="Market Graph — EXIMIUS AI",
+    page_title="Market Graph — VentureFlow AI",
     page_icon="🕸️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -64,7 +64,7 @@ def build_market_graph(graph_data: dict) -> str:
         size=40,
         font={"size": 14, "color": "#F0F4FF", "bold": True},
         shape="dot",
-        shadow={"enabled": True, "color": "rgba(0,212,255,0.4)", "size": 20, "x": 0, "y": 0},
+        shadow={"enabled": True, "color": "rgba(0,212,255,0.7)", "size": 35, "x": 0, "y": 0},
     )
 
     # ── Competitor / adjacent nodes ─────────────────────────────────────────
@@ -86,6 +86,13 @@ def build_market_graph(graph_data: dict) -> str:
             size       = 18
             label_color = "#8892B0"
 
+        if comp_type == "direct":
+            glow_color = "rgba(244,63,94,0.5)"
+            glow_size = 25
+        else:
+            glow_color = "rgba(79,110,247,0.4)"
+            glow_size = 15
+
         net.add_node(
             name,
             label=name,
@@ -98,7 +105,7 @@ def build_market_graph(graph_data: dict) -> str:
             size=size,
             font={"size": 11, "color": label_color},
             shape="dot",
-            shadow={"enabled": True, "color": f"rgba(79,110,247,0.25)", "size": 10, "x": 0, "y": 0},
+            shadow={"enabled": True, "color": glow_color, "size": glow_size, "x": 0, "y": 0},
         )
 
         # Edge
@@ -144,15 +151,17 @@ def build_market_graph(graph_data: dict) -> str:
     net.set_options(json.dumps({
         "nodes": {
             "borderWidth": 2,
-            "borderWidthSelected": 3,
+            "borderWidthSelected": 4,
             "chosen": True,
         },
         "edges": {
-            "smooth": {"type": "continuous", "roundness": 0.3},
-            "selectionWidth": 2,
+            "smooth": {"type": "continuous", "roundness": 0.4},
+            "selectionWidth": 3,
+            "hoverWidth": 1.5,
         },
         "interaction": {
             "hover": True,
+            "hoverConnectedEdges": True,
             "tooltipDelay": 100,
             "hideEdgesOnDrag": False,
             "navigationButtons": False,
@@ -161,7 +170,14 @@ def build_market_graph(graph_data: dict) -> str:
         },
         "physics": {
             "enabled": True,
-            "stabilization": {"iterations": 100},
+            "barnesHut": {
+                "gravitationalConstant": -12000,
+                "centralGravity": 0.15,
+                "springLength": 220,
+                "springConstant": 0.02,
+                "damping": 0.09,
+            },
+            "stabilization": {"iterations": 150},
         },
     }))
 

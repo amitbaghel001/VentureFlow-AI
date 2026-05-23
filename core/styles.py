@@ -1,12 +1,12 @@
 """
-EXIMIUS AI — Global Styles & CSS Injection
+VentureFlow AI — Global Styles & CSS Injection
 Cinematic dark-mode institutional UI.
 """
 
 import streamlit as st
 
 
-EXIMIUS_CSS = """
+VENTUREFLOW_CSS = """
 <style>
 /* ═══════════════════════════════════════════════
    FONTS & ROOT VARIABLES
@@ -42,9 +42,12 @@ html, body, .stApp {
 }
 
 .stApp {
-    background: radial-gradient(ellipse at 20% 0%, rgba(79,110,247,0.04) 0%, transparent 60%),
+    background: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                radial-gradient(ellipse at 20% 0%, rgba(79,110,247,0.04) 0%, transparent 60%),
                 radial-gradient(ellipse at 80% 10%, rgba(0,212,255,0.03) 0%, transparent 50%),
                 var(--bg-void) !important;
+    background-size: 32px 32px, 32px 32px, 100% 100%, 100% 100%, 100% 100%;
 }
 
 /* Hide Streamlit branding */
@@ -118,7 +121,7 @@ section[data-testid="stSidebar"] > div {
    MAIN CONTENT AREA
 ═══════════════════════════════════════════════ */
 .main .block-container {
-    padding: 2rem 2.5rem 3rem !important;
+    padding: 1.5rem 2.5rem 2.5rem !important;
     max-width: 1200px !important;
 }
 
@@ -158,20 +161,22 @@ section[data-testid="stSidebar"] > div {
    GLASS CARDS
 ═══════════════════════════════════════════════ */
 .glass-card {
-    background: rgba(15, 22, 41, 0.85);
-    border: 1px solid var(--border-subtle);
-    border-radius: 10px;
-    padding: 1.4rem 1.6rem;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(13, 17, 23, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 1.5rem 1.7rem;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     position: relative;
     overflow: hidden;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-    border-color: var(--border-active);
-    box-shadow: 0 0 24px var(--glow-indigo);
+    border-color: rgba(79, 110, 247, 0.4);
+    box-shadow: 0 8px 32px var(--glow-indigo), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
 }
 
 .glass-card::before {
@@ -358,24 +363,26 @@ section[data-testid="stSidebar"] > div {
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea,
 .stSelectbox > div > div {
-    background: var(--bg-elevated) !important;
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: 6px !important;
+    background: rgba(13, 17, 23, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 8px !important;
     color: var(--text-primary) !important;
     font-size: 0.875rem !important;
     font-family: 'Inter', sans-serif !important;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.2s ease !important;
 }
 
 .stTextInput > div > div > input:focus,
 .stTextArea > div > div > textarea:focus {
-    border-color: var(--accent-indigo) !important;
-    box-shadow: 0 0 0 2px rgba(79,110,247,0.15) !important;
+    border-color: rgba(79, 110, 247, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.15), inset 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
 .stButton > button {
-    background: linear-gradient(135deg, var(--accent-indigo), #6366F1) !important;
+    background: linear-gradient(180deg, #5C7CFA 0%, #4F6EF7 100%) !important;
     color: white !important;
-    border: none !important;
+    border: 1px solid #3B4FD4 !important;
     border-radius: 6px !important;
     font-weight: 600 !important;
     font-size: 0.82rem !important;
@@ -383,11 +390,13 @@ section[data-testid="stSidebar"] > div {
     padding: 0.5rem 1.4rem !important;
     transition: all 0.2s ease !important;
     font-family: 'Inter', sans-serif !important;
+    box-shadow: 0 2px 10px rgba(79,110,247,0.3), inset 0 1px 0 rgba(255,255,255,0.2) !important;
 }
 
 .stButton > button:hover {
     transform: translateY(-1px) !important;
-    box-shadow: 0 4px 20px rgba(79,110,247,0.35) !important;
+    box-shadow: 0 6px 20px rgba(79,110,247,0.4), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+    background: linear-gradient(180deg, #6C8CFF 0%, #5C7CFA 100%) !important;
 }
 
 .stButton > button[kind="secondary"] {
@@ -630,6 +639,12 @@ hr {
     border-radius: 50%;
     margin-top: 5px;
     flex-shrink: 0;
+    animation: activity-pulse 2s infinite ease-in-out alternate;
+}
+
+@keyframes activity-pulse {
+    0% { opacity: 0.6; filter: drop-shadow(0 0 2px currentColor); }
+    100% { opacity: 1; filter: drop-shadow(0 0 12px currentColor); }
 }
 
 .activity-content {
@@ -742,17 +757,17 @@ hr {
 
 
 def inject_styles() -> None:
-    """Inject the global EXIMIUS stylesheet into Streamlit."""
-    st.markdown(EXIMIUS_CSS, unsafe_allow_html=True)
+    """Inject the global VentureFlow stylesheet into Streamlit."""
+    st.markdown(VENTUREFLOW_CSS, unsafe_allow_html=True)
 
 
 def render_sidebar_logo() -> None:
-    """Render the EXIMIUS logo in the sidebar."""
+    """Render the VentureFlow logo in the sidebar."""
     st.sidebar.markdown(
         """
         <div class="sidebar-logo">
-            <div class="logo-text">EXIMIUS AI</div>
-            <div class="logo-sub">Venture Intelligence OS</div>
+            <div class="logo-text">VentureFlow AI</div>
+            <div class="logo-sub">Workflow Infrastructure</div>
         </div>
         <div class="status-indicator">
             <div class="status-dot"></div>

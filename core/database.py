@@ -74,8 +74,39 @@ class InvestmentMemo(Base):
 # ── Init ──────────────────────────────────────────────────────────────────────
 
 def init_db() -> None:
-    """Create all tables if they don't exist."""
+    """Create all tables if they don't exist and seed if empty."""
     Base.metadata.create_all(bind=engine)
+
+    with SessionLocal() as session:
+        if session.query(StartupAnalysis).filter_by(company_name="Stripe").count() == 0:
+            seed_data = {
+                "company_name": "Stripe",
+                "market_category": "Financial Infrastructure",
+                "business_model": "B2B Payment Processing & Fintech APIs",
+                "investment_score": 98,
+                "recommendation": "STRONG INVEST",
+                "competitors": [
+                    {"name": "Adyen", "type": "direct", "description": "Global enterprise payments", "stage": "Public"},
+                    {"name": "Braintree", "type": "direct", "description": "Mid-market & enterprise processing", "stage": "Acquired"},
+                    {"name": "Plaid", "type": "adjacent", "description": "Open banking connectivity", "stage": "Late Stage"}
+                ],
+                "market_narrative": "Stripe operates as the definitive financial infrastructure layer of the internet. They have established an insurmountable developer-first distribution moat. The primary risk remains margin compression in core payments, but software attach rates (Billing, Tax, Radar) are driving significant high-margin revenue.",
+                "sector_nodes": [
+                    {"name": "Fintech Ops", "category": "Sector"},
+                    {"name": "BaaS", "category": "Sub-Sector"}
+                ]
+            }
+            record = StartupAnalysis(
+                company_name=seed_data["company_name"],
+                website_url="https://stripe.com",
+                market_category=seed_data["market_category"],
+                business_model=seed_data["business_model"],
+                investment_score=seed_data["investment_score"],
+                recommendation=seed_data["recommendation"],
+                analysis_json=json.dumps(seed_data),
+            )
+            session.add(record)
+            session.commit()
 
 
 # ── CRUD: Startups ────────────────────────────────────────────────────────────

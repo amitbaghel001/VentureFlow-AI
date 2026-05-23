@@ -1,5 +1,5 @@
 """
-EXIMIUS AI — Settings Page
+VentureFlow AI — System Intelligence
 Allows configuration of AI models and API preferences.
 """
 
@@ -12,15 +12,14 @@ from core.styles import inject_styles, render_sidebar_logo, page_header
 from core.config import load_config, save_config
 
 st.set_page_config(
-    page_title="Settings - EXIMIUS AI",
+    page_title="System Intelligence — VentureFlow AI",
     page_icon="⚙️",
-    layout="wide",
-    initial_sidebar_state="expanded",
+    layout="wide"
 )
 
 inject_styles()
 render_sidebar_logo()
-page_header("Settings", "System Configuration & AI Preferences")
+page_header("System Intelligence", "Configure active reasoning engines and API connections")
 
 config = load_config()
 
@@ -45,4 +44,4 @@ selected_model = st.selectbox(
 if st.button("Save Configuration", type="primary"):
     config["active_model"] = selected_model
     save_config(config)
-    st.success(f"System updated. EXIMIUS OS is now powered by **{selected_model}**.")
+    st.success(f"System updated. VentureFlow AI is now powered by **{selected_model}**.")

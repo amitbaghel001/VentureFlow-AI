@@ -1,5 +1,6 @@
 """
-EXIMIUS AI — Page 2: Founder Intelligence Engine
+VentureFlow AI — Page 2: Founder Intelligence
+Profile a founder from their LinkedIn bio or raw text.
 """
 
 import sys, os
@@ -14,7 +15,7 @@ from core.ai_engine import analyze_founder
 from core.database import save_founder_profile, get_all_founder_profiles
 
 st.set_page_config(
-    page_title="Founder Intelligence — EXIMIUS AI",
+    page_title="Founder Engine — VentureFlow AI",
     page_icon="👤",
     layout="wide",
     initial_sidebar_state="expanded",
