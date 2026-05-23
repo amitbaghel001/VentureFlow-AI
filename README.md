@@ -1,101 +1,197 @@
-<div align="center">
-  <img src="https://via.placeholder.com/120x120/050810/4F6EF7?text=VF" alt="VentureFlow AI Logo" width="80" height="80">
-  <h1 align="center">VentureFlow AI</h1>
-  <p align="center">
-    <strong>AI-native workflow infrastructure for modern venture capital teams.</strong>
-  </p>
-  <p align="center">
-    <a href="#system-overview">System Overview</a> •
-    <a href="#feature-showcase">Feature Showcase</a> •
-    <a href="#architecture">Architecture</a> •
-    <a href="#deployment">Deployment</a>
-  </p>
-</div>
+# VentureFlow AI — Venture Intelligence Operating System
 
-<br/>
+> *AI-native workflow infrastructure for early-stage venture capital firms.*
 
-## ⬡ System Overview
-
-VentureFlow AI is an institutional-grade venture intelligence platform. It acts as an autonomous operating system for venture funds, transforming unstructured external data (startup websites, founder profiles, market shifts) into highly structured, actionable investment intelligence. 
-
-Designed with the restraint and density of institutional software (like Bloomberg Terminal or Palantir), it eliminates the busywork of early-stage diligence, allowing high-agency partners and analysts to focus purely on decision-making.
+VentureFlow AI is a production-ready MVP that gives venture analysts and GPs an AI-powered intelligence layer for startup evaluation, founder profiling, market mapping, and investment memo generation.
 
 ---
 
-## ⬡ Feature Showcase
+## What It Does
 
-### 1. Operations Dashboard
-The mission control for the intelligence system. Features real-time market signals, system activity logs, and immediate access to the core analytical modules. 
-> *[Dashboard Screenshot Placeholder]*
-
-### 2. Startup Intelligence Engine
-Input a startup URL and the LLM engine autonomously extracts the business model, evaluates moats, identifies risks, and outputs a dimensional investment score in JSON format.
-> *[Startup Analyzer Screenshot Placeholder]*
-
-### 3. Founder Intelligence Engine
-Extracts execution velocity signals, domain expertise, and founder-market fit directly from a founder's LinkedIn bio or profile text, formatting it into a concise founder intelligence card.
-> *[Founder Engine Screenshot Placeholder]*
-
-### 4. Cinematic Market Graph
-A dynamic, PyVis-powered network graph that maps direct competitors, adjacent companies, and overarching market sectors. It utilizes gravitational physics to cluster related entities.
-> *[Market Graph Screenshot Placeholder]*
-
-### 5. Institutional Memo Generator
-Compiles existing startup analyses, founder profiles, and analyst notes into an institutional-grade investment committee memo, ready for export as a PDF.
-> *[Memo Engine Screenshot Placeholder]*
+| Module | Description |
+|--------|-------------|
+| **Startup Analyzer** | Input a startup URL + description → AI extracts business model, competitors, moat, traction, and generates an investment score with dimensional breakdown |
+| **Founder Intelligence** | Paste a founder bio → AI scores domain expertise, execution signal, founder-market fit, and generates a risk profile |
+| **Memo Generator** | Pulls context from saved analyses → generates a full IC-ready investment memo with bull/bear cases, downloadable as PDF |
+| **Market Graph** | Interactive PyVis network graph showing the startup's competitive landscape with colour-coded nodes |
 
 ---
 
-## ⬡ Architecture
-
-VentureFlow AI uses a tightly integrated modern AI stack.
+## Architecture
 
 ```mermaid
 graph TD
     UI[Streamlit Frontend] --> Core[AI Engine Core]
     UI --> DB[(SQLite Database)]
     Core --> Instructor[Instructor JSON Validation]
-    Instructor --> LLM((LLM API: Llama 3 / GPT-4))
+    Instructor --> LLM((LLM API: Llama 3 / GPT-4 / Gemini))
     Core --> Vis[PyVis Network Graphs]
     Core --> PDF[FPDF Memo Generation]
 ```
 
-- **Frontend:** Streamlit deeply customized via CSS injection (`core/styles.py`) for a cinematic, dark-mode institutional UI.
-- **AI Core:** `instructor` + `pydantic` are used to guarantee strict JSON output from LLMs for reliable parsing.
-- **LLM Support:** Seamlessly integrates with Groq (Llama-3), OpenAI, and Google Gemini via `.env` configuration.
-- **Persistence:** Local SQLite via SQLAlchemy (`core/database.py`) tracks all historical analyses.
+## Workflow
+
+```mermaid
+graph TD
+    A[User Input] -->|URL & Pitch| B[Startup Analyzer]
+    A -->|LinkedIn Bio| C[Founder Intelligence]
+    
+    B -- Evaluates Moat & Traction --> D[(Local SQLite Database)]
+    C -- Scores Domain & Execution --> D
+    
+    D --> E[Memo Generator]
+    E -- Compiles --> F[Investment Committee PDF]
+    
+    D --> G[Market Graph]
+    G -- Visualizes --> H[Interactive PyVis Network]
+    
+    I[System Intelligence] -- Routes to --> J((AI Engine))
+    J -. Powers .-> B
+    J -. Powers .-> C
+    J -. Powers .-> E
+    J -. Powers .-> G
+```
 
 ---
 
-## ⬡ Deployment & Setup
+## Setup (5 minutes)
 
-### Prerequisites
-- Python 3.10+
-- Valid API Key (Groq recommended for speed, OpenAI/Gemini supported)
+### 1. Clone / download the project
 
-### 1. Initialization
 ```bash
-git clone https://github.com/amitbaghel001/VentureFlow-AI.git
-cd VentureFlow-AI
+cd path/to/VentureFlow-AI
+```
+
+### 2. Create a virtual environment
+
+```bash
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# macOS / Linux
+source venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. Environment Configuration
-Create a `.env` file in the root directory:
-```env
-# AI Model Keys (Provide at least one)
-GROQ_API_KEY=gsk_...
-OPENAI_API_KEY=sk-...
-GEMINI_API_KEY=AIzaSy...
+### 4. Configure your API key
+
+```bash
+# Copy the template
+cp .env.example .env
+
+# Edit .env and add your preferred API keys (Groq, OpenAI, or Gemini)
+GROQ_API_KEY=gsk_your_key_here
 ```
 
-### 3. Launch System
+### 5. Run the app
+
 ```bash
 streamlit run 0_Home_Dashboard.py
 ```
-*The system will automatically initialize the local database and seed a sample institutional analysis.*
+
+The app opens at `http://localhost:8501` automatically.
 
 ---
-<div align="center">
-  <p><em>VentureFlow AI · AI-native workflow infrastructure</em></p>
-</div>
+
+## Project Structure
+
+```
+VentureFlow-AI/
+├── 0_Home_Dashboard.py             # Home dashboard (entry point)
+├── pages/
+│   ├── 1_Startup_Analyzer.py       # Startup intelligence engine
+│   ├── 2_Founder_Intelligence.py   # Founder profiling engine
+│   ├── 3_Memo_Generator.py         # Investment memo generator
+│   ├── 4_Market_Graph.py           # PyVis network graph
+│   └── 5_System_Intelligence.py    # Global AI settings and configuration
+├── core/
+│   ├── styles.py                   # CSS design system (dark theme)
+│   ├── ai_engine.py                # LLM API calls + prompts
+│   ├── database.py                 # SQLite via SQLAlchemy
+│   └── pdf_export.py               # FPDF PDF generation
+├── data/
+│   └── eximius.db                  # Auto-created SQLite database
+├── .streamlit/
+│   └── config.toml                 # Streamlit theme configuration
+├── requirements.txt
+├── .env
+└── README.md
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | Streamlit + custom CSS (glassmorphism, dark mode) |
+| **AI** | Llama-3 / GPT-4 with JSON mode structured outputs |
+| **Database** | SQLite via SQLAlchemy (auto-created) |
+| **Graph** | PyVis (force-directed network visualization) |
+| **PDF** | FPDF (institutional memo PDF generation) |
+
+---
+
+## Demo Workflow
+
+### Recommended demo sequence:
+
+**Step 1 — Startup Analysis**
+1. Navigate to **Startup Analyzer**
+2. Enter: `Figma` + `https://figma.com` + "collaborative design tool for teams"
+3. Click **Analyze**
+4. Review the investment score, competitive analysis, and diligence questions
+
+**Step 2 — Founder Intelligence**
+1. Navigate to **Founder Intelligence**
+2. Paste a LinkedIn bio (real or synthetic)
+3. Review the dimensional score card and risk indicators
+
+**Step 3 — Investment Memo**
+1. Navigate to **Memo Generator**
+2. Load the Figma analysis from the dropdown
+3. Click **Generate**
+4. Download the PDF
+
+**Step 4 — Market Graph**
+1. Navigate to **Market Graph**
+2. Load the Figma analysis
+3. Click **Generate**
+4. Interact with the force-directed network
+
+---
+
+## Deployment (Free)
+
+The easiest way to deploy VentureFlow AI to the web is via **Streamlit Community Cloud**:
+
+1. Go to [share.streamlit.io](https://share.streamlit.io/) and log in with your GitHub account.
+2. Click **New app**.
+3. Fill in the details:
+   - **Repository:** `amitbaghel001/VentureFlow-AI`
+   - **Branch:** `main`
+   - **Main file path:** `0_Home_Dashboard.py`
+4. **CRITICAL STEP:** Click on **Advanced settings** (before deploying) and paste your API keys into the "Secrets" box exactly like your `.env` file:
+   ```toml
+   GROQ_API_KEY="gsk_your_key_here"
+   GEMINI_API_KEY="AIzaSy..."
+   OPENAI_API_KEY="sk-..."
+   ```
+5. Click **Deploy!** Your app will be live globally in about 2 minutes.
+
+---
+
+## License
+
+Internal use only. Not for distribution.
+
+---
+
+*Built with VentureFlow AI · AI-native workflow infrastructure*
