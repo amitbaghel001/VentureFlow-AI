@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import streamlit as st
 import streamlit.components.v1 as components
+from core.auth import require_login
 from core.styles import inject_styles, render_top_nav, page_header, loading_indicator, data_source_badge, esc, flatten_html
 from core.ai_engine import generate_graph_data
 from core.database import get_all_startup_analyses
@@ -20,6 +21,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 inject_styles()
+require_login()
 render_top_nav()
 page_header("Startup Intelligence Graph", "Interactive competitive market landscape visualization")
 

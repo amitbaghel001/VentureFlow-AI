@@ -8,6 +8,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import streamlit as st
+from core.auth import require_login
 from core.styles import inject_styles, render_top_nav, page_header
 from core.config import load_config, save_config
 
@@ -18,6 +19,7 @@ st.set_page_config(
 )
 
 inject_styles()
+require_login()
 render_top_nav()
 page_header("System Intelligence", "Configure active reasoning engines and API connections")
 

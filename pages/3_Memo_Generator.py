@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import streamlit as st
 from datetime import datetime
+from core.auth import require_login
 from core.styles import inject_styles, render_top_nav, page_header, loading_indicator, esc, flatten_html
 from core.ai_engine import generate_memo
 from core.database import (
@@ -23,6 +24,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 inject_styles()
+require_login()
 render_top_nav()
 page_header("AI Investment Memo Generator", "Institutional-quality IC memos generated from intelligence data")
 

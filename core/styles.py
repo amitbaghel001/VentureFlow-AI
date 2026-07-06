@@ -9,6 +9,8 @@ import re as _re
 
 import streamlit as st
 
+from core.auth import is_gated, render_logout_button
+
 
 VENTUREFLOW_CSS = """
 <style>
@@ -795,22 +797,26 @@ PAGES = [
 
 
 def render_top_nav() -> None:
-    """Render the single top nav bar: brand + page links. This replaces the
-    sidebar as the only navigation surface in the app (the sidebar is hidden
-    via CSS) — call this once, as the first thing rendered on every page,
-    right after inject_styles()."""
+    """Render the single top nav bar: brand + page links + logout (when the
+    app is password-gated). This replaces the sidebar as the only navigation
+    surface in the app (the sidebar is hidden via CSS) — call this once,
+    right after require_login(), as the first visible content on every page."""
     with st.container(key="topnav"):
         # Column widths scale with label length so longer labels (e.g.
         # "Founder Intelligence") don't clip inside an equally-sized column
         # meant for a short one (e.g. "Home") — a uniform ratio was cutting
         # text off in longer links.
         ratios = [2.0] + [max(0.8, len(label) / 9) for _, label in PAGES]
+        if is_gated():
+            ratios += [0.9]
         cols = st.columns(ratios)
         with cols[0]:
             st.markdown('<div class="topnav-brand">VentureFlow AI</div>', unsafe_allow_html=True)
         for col, (page_path, label) in zip(cols[1:], PAGES):
             with col:
                 st.page_link(page_path, label=label)
+        if is_gated():
+            render_logout_button(cols[-1])
 
 
 def page_header(title: str, subtitle: str) -> None:

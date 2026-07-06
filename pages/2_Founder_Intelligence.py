@@ -7,6 +7,7 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import streamlit as st
+from core.auth import require_login
 from core.styles import (
     inject_styles, render_top_nav, page_header,
     score_bar, intel_tag, loading_indicator, data_source_badge,
@@ -23,6 +24,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 inject_styles()
+require_login()
 render_top_nav()
 page_header("Founder Intelligence Engine", "Multi-signal founder evaluation & risk profiling")
 

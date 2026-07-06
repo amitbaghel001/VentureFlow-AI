@@ -8,6 +8,7 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 import streamlit as st
+from core.auth import require_login
 from core.styles import inject_styles, render_top_nav, page_header
 from core.database import get_all_startup_analyses, get_all_memos, get_all_founder_profiles, init_db
 
@@ -19,6 +20,7 @@ st.set_page_config(
 )
 
 inject_styles()
+require_login()
 render_top_nav()
 
 # ── Init DB ────────────────────────────────────────────────────────────────────
