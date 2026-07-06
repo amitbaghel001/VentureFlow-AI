@@ -23,18 +23,18 @@ from reportlab.platypus import (
 )
 
 # ── Colour palette ────────────────────────────────────────────────────────────
-VOID       = colors.HexColor("#050810")
-SURFACE    = colors.HexColor("#0D1117")
-CARD       = colors.HexColor("#0F1629")
-BORDER     = colors.HexColor("#1A2744")
-INDIGO     = colors.HexColor("#4F6EF7")
-CYAN       = colors.HexColor("#00D4FF")
-EMERALD    = colors.HexColor("#10B981")
-AMBER      = colors.HexColor("#F59E0B")
-ROSE       = colors.HexColor("#F43F5E")
-WHITE      = colors.HexColor("#F0F4FF")
-GREY       = colors.HexColor("#8892B0")
-DARK_GREY  = colors.HexColor("#4A5568")
+VOID       = colors.HexColor("#F0EEE8")
+SURFACE    = colors.HexColor("#F7F5F0")
+CARD       = colors.HexColor("#FFFFFF")
+BORDER     = colors.HexColor("#E4E0D6")
+INDIGO     = colors.HexColor("#6C5CE0")
+CYAN       = colors.HexColor("#6C5CE0")
+EMERALD    = colors.HexColor("#2F7D5C")
+AMBER      = colors.HexColor("#A6791F")
+ROSE       = colors.HexColor("#B23B3B")
+WHITE      = colors.HexColor("#1E1B4B")
+GREY       = colors.HexColor("#5B5A66")
+DARK_GREY  = colors.HexColor("#86859A")
 
 # ── Style builders ────────────────────────────────────────────────────────────
 
@@ -154,7 +154,7 @@ def _score_row(label: str, score: int, styles: dict) -> Table:
     bar = "█" * filled + "░" * (20 - filled)
     data = [[
         Paragraph(label, styles["bullet"]),
-        Paragraph(f'<font color="#4F6EF7">{bar}</font>  {score}', styles["score_label"]),
+        Paragraph(f'<font color="#6C5CE0">{bar}</font>  {score}', styles["score_label"]),
     ]]
     tbl = Table(data, colWidths=[70 * mm, 110 * mm])
     tbl.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
@@ -212,7 +212,7 @@ def generate_memo_pdf(memo_data: dict[str, Any], startup_data: dict[str, Any] | 
         "MONITOR": styles["rec_monitor"],
     }
     rec_style = rec_style_map.get(recommendation, styles["rec_monitor"])
-    icons = {"INVEST": "▲ INVEST", "PASS": "▼ PASS", "MONITOR": "◈ MONITOR"}
+    icons = {"INVEST": "INVEST", "PASS": "PASS", "MONITOR": "MONITOR"}
     story.append(Paragraph(icons.get(recommendation, recommendation), rec_style))
     story.append(Spacer(1, 6 * mm))
     story.append(_hr())

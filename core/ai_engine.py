@@ -13,6 +13,11 @@ from openai import OpenAI
 load_dotenv()
 
 from core.config import load_config
+from core.enrichment import (
+    build_github_context_block,
+    build_web_context_block,
+    compute_confidence,
+)
 
 _client_openai: OpenAI | None = None
 _gemini_configured = False
@@ -144,7 +149,10 @@ Rules:
 - investment_score is the weighted average of score_breakdown.
 - recommendation must be exactly one of: "invest", "monitor", "pass".
 - Be analytically rigorous. No generic platitudes.
-- If information is limited, state your assumptions clearly.
+- If a REAL-TIME WEB INTELLIGENCE block is provided, treat it as sourced fact (cite it implicitly
+  in competitors/traction/moat) and prefer it over your own training-data guesses.
+- If information is limited and no web intelligence is provided, state your assumptions clearly
+  rather than presenting a guess as a verified fact.
 - Think like a GP, not a generalist.
 """
 
@@ -154,8 +162,14 @@ def analyze_startup(
     website_url: str,
     description: str,
     website_content: str = "",
+    web_intel: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Run the startup intelligence analysis pipeline."""
+    """Run the startup intelligence analysis pipeline.
+
+    web_intel (optional): output of core.enrichment.gather_company_intel — live
+    search results used to ground competitors/funding/traction in real sources
+    instead of relying purely on LLM training-data recall.
+    """
     context_parts = [f"Company Name: {company_name}"]
     if website_url:
         context_parts.append(f"Website: {website_url}")
@@ -165,11 +179,25 @@ def analyze_startup(
         context_parts.append(
             f"Website content (scraped):\n{website_content[:4000]}"
         )
+    web_block = build_web_context_block(web_intel) if web_intel else ""
+    if web_block:
+        context_parts.append(web_block)
 
     user_prompt = "\n\n".join(context_parts)
     user_prompt += "\n\nGenerate the complete startup intelligence analysis."
 
-    return _call_llm(STARTUP_SYSTEM_PROMPT, user_prompt)
+    result = _call_llm(STARTUP_SYSTEM_PROMPT, user_prompt)
+
+    result["_meta"] = {
+        "used_website_scrape": bool(website_content),
+        "used_web_search": bool(web_intel and web_intel.get("used_web_search")),
+        "web_sources": (web_intel or {}).get("sources", []),
+        "confidence": compute_confidence(
+            has_scrape=bool(website_content),
+            has_web_search=bool(web_intel and web_intel.get("used_web_search")),
+        ),
+    }
+    return result
 
 
 # ─── Founder Analysis ─────────────────────────────────────────────────────────
@@ -209,17 +237,51 @@ Rules:
 - All scores are integers 0–100.
 - overall_score = weighted mean of all five dimension scores.
 - Be rigorous. Missing information should lower confidence, not inflate scores.
-- Identify what you can infer even from limited bio text.
+- If a GITHUB PROFILE or REAL-TIME WEB INTELLIGENCE block is provided, treat it as verified
+  signal — real repos/stars/followers are stronger execution evidence than any prose bio claim.
+- Identify what you can infer even from limited bio text, but do not present an inference as
+  a verified fact when no sourced signal supports it.
 """
 
 
-def analyze_founder(bio_text: str) -> dict[str, Any]:
-    """Run the founder intelligence analysis pipeline."""
-    user_prompt = (
-        f"Founder background / LinkedIn bio / profile:\n\n{bio_text}\n\n"
-        "Generate the complete founder intelligence card."
-    )
-    return _call_llm(FOUNDER_SYSTEM_PROMPT, user_prompt)
+def analyze_founder(
+    bio_text: str,
+    github_data: dict[str, Any] | None = None,
+    web_intel: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Run the founder intelligence analysis pipeline.
+
+    github_data (optional): output of core.enrichment.fetch_github_profile — real,
+    verified developer signal (repos, stars, followers).
+    web_intel (optional): output of core.enrichment.gather_founder_intel — live
+    public web mentions of the founder, cross-referenced with their company.
+    """
+    parts = [f"Founder background / LinkedIn bio / profile:\n\n{bio_text}"]
+
+    github_block = build_github_context_block(github_data)
+    if github_block:
+        parts.append(github_block)
+
+    web_block = build_web_context_block(web_intel, label="PUBLIC WEB MENTIONS") if web_intel else ""
+    if web_block:
+        parts.append(web_block)
+
+    parts.append("Generate the complete founder intelligence card.")
+    user_prompt = "\n\n".join(parts)
+
+    result = _call_llm(FOUNDER_SYSTEM_PROMPT, user_prompt)
+
+    result["_meta"] = {
+        "used_github": bool(github_data),
+        "used_web_search": bool(web_intel and web_intel.get("used_web_search")),
+        "web_sources": (web_intel or {}).get("sources", []),
+        "github_profile_url": (github_data or {}).get("profile_url"),
+        "confidence": compute_confidence(
+            has_github=bool(github_data),
+            has_web_search=bool(web_intel and web_intel.get("used_web_search")),
+        ),
+    }
+    return result
 
 
 # ─── Investment Memo ──────────────────────────────────────────────────────────
@@ -306,6 +368,8 @@ Rules:
 - Sector nodes are broader market categories or enabling technologies (2-3 nodes).
 - Names must be real or realistic company names.
 - Types must be exactly: "direct" or "adjacent" or "sector".
+- If a REAL-TIME WEB INTELLIGENCE block is provided, prefer the real competitor names it
+  surfaces over your own training-data guesses.
 """
 
 
@@ -313,15 +377,33 @@ def generate_graph_data(
     company_name: str,
     market_category: str,
     competitors: list[str],
+    web_intel: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Generate structured data for the market graph visualization."""
+    """Generate structured data for the market graph visualization.
+
+    web_intel (optional): output of core.enrichment.gather_company_intel — live
+    search results used to ground the competitor map in real sources.
+    """
     user_prompt = (
         f"Company: {company_name}\n"
         f"Market Category: {market_category}\n"
         f"Known competitors: {', '.join(competitors) if competitors else 'unknown'}\n\n"
         "Generate the complete market graph data."
     )
-    return _call_llm(GRAPH_SYSTEM_PROMPT, user_prompt)
+    web_block = build_web_context_block(web_intel) if web_intel else ""
+    if web_block:
+        user_prompt += f"\n\n{web_block}"
+
+    result = _call_llm(GRAPH_SYSTEM_PROMPT, user_prompt)
+
+    result["_meta"] = {
+        "used_web_search": bool(web_intel and web_intel.get("used_web_search")),
+        "web_sources": (web_intel or {}).get("sources", []),
+        "confidence": compute_confidence(
+            has_web_search=bool(web_intel and web_intel.get("used_web_search"))
+        ),
+    }
+    return result
 
 
 # ─── Website Scraper ──────────────────────────────────────────────────────────

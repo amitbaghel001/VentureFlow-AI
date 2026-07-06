@@ -22,12 +22,25 @@ VentureFlow AI is a production-ready MVP that gives venture analysts and GPs an 
 ```mermaid
 graph TD
     UI[Streamlit Frontend] --> Core[AI Engine Core]
+    API[FastAPI REST Layer] --> Core
     UI --> DB[(SQLite Database)]
-    Core --> Instructor[Instructor JSON Validation]
-    Instructor --> LLM((LLM API: Llama 3 / GPT-4 / Gemini))
+    API --> DB
+    Core --> LLM((LLM API: Llama 3 / GPT-4 / Gemini))
+    UI --> Enrich[Enrichment Layer]
+    API --> Enrich
+    Enrich --> Tavily[(Tavily Web Search)]
+    Enrich --> GitHub[(GitHub Public API)]
+    Enrich -.grounds.-> Core
     Core --> Vis[PyVis Network Graphs]
-    Core --> PDF[FPDF Memo Generation]
+    Core --> PDF[ReportLab Memo Generation]
 ```
+
+**Grounding, not just guessing:** every analysis carries a `_meta` block computed in
+code (not self-reported by the LLM) recording exactly which live sources were fetched
+— website scrape, Tavily web search, GitHub profile. The UI renders this as a
+**GROUNDED / PARTIAL / AI-INFERRED** badge with clickable source links, so you always
+know whether a claim is backed by real data or is LLM training-data recall. See
+[core/enrichment.py](core/enrichment.py).
 
 ## Workflow
 
@@ -88,6 +101,10 @@ cp .env.example .env
 
 # Edit .env and add your preferred API keys (Groq, OpenAI, or Gemini)
 GROQ_API_KEY=gsk_your_key_here
+
+# Optional but recommended — grounds analyses in real live web data instead of
+# pure LLM recall. Free tier at https://tavily.com.
+TAVILY_API_KEY=tvly_your_key_here
 ```
 
 ### 5. Run the app
@@ -98,6 +115,17 @@ streamlit run 0_Home_Dashboard.py
 
 The app opens at `http://localhost:8501` automatically.
 
+### 6. (Optional) Run the REST API
+
+Every capability in the Streamlit UI is also exposed as a live FastAPI service —
+useful for integrating with another frontend, a script, or a scheduled job:
+
+```bash
+python api.py
+```
+
+Serves on `http://localhost:8000`, with interactive docs at `http://localhost:8000/docs`.
+
 ---
 
 ## Project Structure
@@ -105,6 +133,7 @@ The app opens at `http://localhost:8501` automatically.
 ```
 VentureFlow-AI/
 ├── 0_Home_Dashboard.py             # Home dashboard (entry point)
+├── api.py                          # FastAPI REST mirror of every Streamlit capability
 ├── pages/
 │   ├── 1_Startup_Analyzer.py       # Startup intelligence engine
 │   ├── 2_Founder_Intelligence.py   # Founder profiling engine
@@ -112,10 +141,11 @@ VentureFlow-AI/
 │   ├── 4_Market_Graph.py           # PyVis network graph
 │   └── 5_System_Intelligence.py    # Global AI settings and configuration
 ├── core/
-│   ├── styles.py                   # CSS design system (dark theme)
+│   ├── styles.py                   # CSS design system (dark theme) + data-source badge
 │   ├── ai_engine.py                # LLM API calls + prompts
+│   ├── enrichment.py                # Live grounding: Tavily web search + GitHub API
 │   ├── database.py                 # SQLite via SQLAlchemy
-│   └── pdf_export.py               # FPDF PDF generation
+│   └── pdf_export.py               # ReportLab PDF generation
 ├── data/
 │   └── eximius.db                  # Auto-created SQLite database
 ├── .streamlit/
@@ -132,10 +162,12 @@ VentureFlow-AI/
 | Layer | Technology |
 |-------|-----------|
 | **Frontend** | Streamlit + custom CSS (glassmorphism, dark mode) |
+| **REST API** | FastAPI mirror of every analysis pipeline ([api.py](api.py)) |
 | **AI** | Llama-3 / GPT-4 with JSON mode structured outputs |
+| **Enrichment** | Tavily live web search + GitHub public API (real, sourced grounding) |
 | **Database** | SQLite via SQLAlchemy (auto-created) |
 | **Graph** | PyVis (force-directed network visualization) |
-| **PDF** | FPDF (institutional memo PDF generation) |
+| **PDF** | ReportLab (institutional memo PDF generation) |
 
 ---
 

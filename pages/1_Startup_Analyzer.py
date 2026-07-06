@@ -8,11 +8,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import streamlit as st
 from core.styles import (
-    inject_styles, render_sidebar_logo, page_header,
+    inject_styles, render_top_nav, page_header,
     score_bar, intel_tag, rec_banner, loading_indicator, glass_card,
+    data_source_badge, esc, flatten_html,
 )
 from core.ai_engine import analyze_startup, scrape_website
 from core.database import save_startup_analysis, get_all_startup_analyses
+from core.enrichment import gather_company_intel, web_search_enabled
 
 st.set_page_config(
     page_title="Startup Analyzer — VentureFlow AI",
@@ -21,7 +23,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 inject_styles()
-render_sidebar_logo()
+render_top_nav()
 page_header("Startup Intelligence Analyzer", "AI-powered startup evaluation engine")
 
 # ── Input panel ────────────────────────────────────────────────────────────────
@@ -53,7 +55,13 @@ with st.container():
         )
     st.markdown("</div>", unsafe_allow_html=True)
 
-run_btn = st.button("⬡  Run Startup Intelligence Analysis", use_container_width=False)
+if not web_search_enabled():
+    st.caption(
+        "⚠ Live web verification is off — add `TAVILY_API_KEY` to `.env` to ground "
+        "competitors, funding, and traction in real search results instead of AI recall alone."
+    )
+
+run_btn = st.button("Run Startup Intelligence Analysis", use_container_width=False)
 
 # ── Analysis execution ─────────────────────────────────────────────────────────
 if run_btn:
@@ -74,13 +82,20 @@ if run_btn:
             with st.spinner("Fetching website content..."):
                 website_content = scrape_website(website_url)
 
-        # Step 2: Run AI analysis
+        # Step 2: Live web search for real funding/competitor/news signal
+        web_intel = None
+        if web_search_enabled() and company_name:
+            with st.spinner("Searching the web for funding, news, and real competitors..."):
+                web_intel = gather_company_intel(company_name, website_url)
+
+        # Step 3: Run AI analysis
         try:
             data = analyze_startup(
                 company_name=company_name or "Unknown",
                 website_url=website_url,
                 description=description,
                 website_content=website_content,
+                web_intel=web_intel,
             )
         except ValueError as e:
             loading_placeholder.empty()
@@ -91,7 +106,7 @@ if run_btn:
             st.error(f"Analysis failed: {e}")
             st.stop()
 
-        # Step 3: Save to DB
+        # Step 4: Save to DB
         save_startup_analysis(data, website_url=website_url)
 
     loading_placeholder.empty()
@@ -107,47 +122,47 @@ if data:
     # ── Header row ─────────────────────────────────────────────────────────────
     score = int(data.get("investment_score", 0))
     rec   = (data.get("recommendation") or "monitor").lower()
-    rec_color_map = {"invest": "#10B981", "pass": "#F43F5E", "monitor": "#F59E0B"}
-    rec_color = rec_color_map.get(rec, "#F59E0B")
+    rec_color_map = {"invest": "#2F7D5C", "pass": "#B23B3B", "monitor": "#A6791F"}
+    rec_color = rec_color_map.get(rec, "#A6791F")
 
     col_name, col_score = st.columns([3, 1])
     with col_name:
         st.markdown(
-            f"""
+            flatten_html(f"""
             <div style="margin-bottom: 0.3rem;">
-                <span style="font-size: 1.5rem; font-weight: 800; color: #F0F4FF;
-                             letter-spacing: -0.03em;">{data.get('company_name', company_name)}</span>
+                <span style="font-family: 'Lora', serif; font-size: 1.6rem; line-height: 1.4; font-weight: 600; color: #1E1B4B;
+                             letter-spacing: -0.01em;">{esc(data.get('company_name', company_name))}</span>
             </div>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
-                {intel_tag(data.get('market_category', '—'), 'neutral')}
-                {intel_tag(data.get('business_model', '—'), 'neutral')}
-                {intel_tag(data.get('stage_fit', '—'), 'warning')}
+                {intel_tag(esc(data.get('market_category', '—')), 'neutral')}
+                {intel_tag(esc(data.get('business_model', '—')), 'neutral')}
+                {intel_tag(esc(data.get('stage_fit', '—')), 'warning')}
             </div>
-            <div style="font-size: 0.875rem; color: #8892B0; line-height: 1.6; max-width: 700px;">
-                {data.get('value_proposition', '')}
+            <div style="font-size: 0.875rem; color: #5B5A66; line-height: 1.6; max-width: 700px;">
+                {esc(data.get('value_proposition', ''))}
             </div>
-            """,
+            """),
             unsafe_allow_html=True,
         )
     with col_score:
         st.markdown(
-            f"""
-            <div style="text-align: center; background: var(--bg-card); border: 1px solid #1A2744;
+            flatten_html(f"""
+            <div style="text-align: center; background: var(--bg-card); border: 1px solid #E4E0D6;
                         border-radius: 10px; padding: 1.2rem;">
-                <div style="font-size: 3rem; font-weight: 900; color: #4F6EF7;
+                <div style="font-size: 3rem; font-weight: 900; color: #6C5CE0;
                              letter-spacing: -0.04em; line-height: 1;">{score}</div>
-                <div style="font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.18em;
-                             color: #4A5568; margin-top: 0.3rem;">Investment Score</div>
+                <div style="font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em;
+                             color: #86859A; margin-top: 0.3rem;">Investment Score</div>
                 <div style="margin-top: 0.8rem; font-size: 0.75rem; font-weight: 700;
                              color: {rec_color}; text-transform: uppercase; letter-spacing: 0.1em;">
-                    {rec.upper()}
+                    {esc(rec.upper())}
                 </div>
             </div>
-            """,
+            """),
             unsafe_allow_html=True,
         )
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(data_source_badge(data.get("_meta", {})), unsafe_allow_html=True)
 
     # ── Tabs ───────────────────────────────────────────────────────────────────
     tab1, tab2, tab3, tab4 = st.tabs([
@@ -164,38 +179,38 @@ if data:
         with r1c1:
             # Market & Business
             st.markdown(
-                f"""
+                flatten_html(f"""
                 <div class="glass-card">
                     <div class="intel-section-header">Market & Business Model</div>
-                    <div style="font-size: 0.82rem; color: #8892B0; line-height: 1.7; margin-bottom: 0.8rem;">
-                        {data.get('market_size_estimate', '—')}
+                    <div style="font-size: 0.82rem; color: #5B5A66; line-height: 1.7; margin-bottom: 0.8rem;">
+                        {esc(data.get('market_size_estimate', '—'))}
                     </div>
                     <div class="intel-section-header" style="margin-top:1rem;">Target Customer</div>
-                    <div style="font-size: 0.82rem; color: #8892B0;">{data.get('target_customer', '—')}</div>
+                    <div style="font-size: 0.82rem; color: #5B5A66;">{esc(data.get('target_customer', '—'))}</div>
                     <div class="intel-section-header" style="margin-top:1rem;">Technology Assessment</div>
-                    <div style="font-size: 0.82rem; color: #8892B0; line-height: 1.65;">
-                        {data.get('technology_assessment', '—')}
+                    <div style="font-size: 0.82rem; color: #5B5A66; line-height: 1.65;">
+                        {esc(data.get('technology_assessment', '—'))}
                     </div>
                 </div>
-                """,
+                """),
                 unsafe_allow_html=True,
             )
 
         with r1c2:
             # Moat
             st.markdown(
-                f"""
+                flatten_html(f"""
                 <div class="glass-card">
                     <div class="intel-section-header">Moat Analysis</div>
-                    <div style="font-size: 0.82rem; color: #8892B0; line-height: 1.7; margin-bottom: 1rem;">
-                        {data.get('moat_analysis', '—')}
+                    <div style="font-size: 0.82rem; color: #5B5A66; line-height: 1.7; margin-bottom: 1rem;">
+                        {esc(data.get('moat_analysis', '—'))}
                     </div>
                     <div class="intel-section-header" style="margin-top:1rem;">Traction Signals</div>
-                    <div style="font-size: 0.82rem; color: #8892B0; line-height: 1.65;">
-                        {data.get('traction_signals', '—')}
+                    <div style="font-size: 0.82rem; color: #5B5A66; line-height: 1.65;">
+                        {esc(data.get('traction_signals', '—'))}
                     </div>
                 </div>
-                """,
+                """),
                 unsafe_allow_html=True,
             )
 
@@ -204,36 +219,36 @@ if data:
         with r2c1:
             strengths = data.get("competitive_advantages", [])
             tags_html = " ".join(
-                intel_tag(s[:60], "positive") for s in strengths
+                intel_tag(esc(s[:60]), "positive") for s in strengths
             )
             st.markdown(
-                f"""
+                flatten_html(f"""
                 <div class="glass-card">
                     <div class="intel-section-header">Competitive Advantages</div>
                     <div style="margin-top: 0.3rem;">{tags_html}</div>
                 </div>
-                """,
+                """),
                 unsafe_allow_html=True,
             )
 
         with r2c2:
             risks = data.get("key_risks", [])
             tags_html = " ".join(
-                intel_tag(r[:60], "negative") for r in risks
+                intel_tag(esc(r[:60]), "negative") for r in risks
             )
             st.markdown(
-                f"""
+                flatten_html(f"""
                 <div class="glass-card">
                     <div class="intel-section-header">Key Risk Signals</div>
                     <div style="margin-top: 0.3rem;">{tags_html}</div>
                 </div>
-                """,
+                """),
                 unsafe_allow_html=True,
             )
 
         # Recommendation
         rec_text = data.get("recommendation_rationale", "")
-        st.markdown(rec_banner(rec_text, rec), unsafe_allow_html=True)
+        st.markdown(flatten_html(rec_banner(esc(rec_text), rec)), unsafe_allow_html=True)
 
     # ── Tab 2: Competitive ─────────────────────────────────────────────────────
     with tab2:
@@ -248,10 +263,10 @@ if data:
                 comp_html += f"""
                 <div class="competitor-row">
                     <div class="competitor-dot"></div>
-                    <div class="competitor-name">{comp}</div>
+                    <div class="competitor-name">{esc(comp)}</div>
                 </div>
                 """
-            st.markdown(comp_html + "</div>", unsafe_allow_html=True)
+            st.markdown(flatten_html(comp_html) + "</div>", unsafe_allow_html=True)
         else:
             st.markdown("No competitors identified.</div>", unsafe_allow_html=True)
 
@@ -277,11 +292,11 @@ if data:
                 <div class="intel-section-header">Investment Score Breakdown</div>
                 <div style="margin-top: 1rem;">{bars_html}</div>
                 <div style="margin-top: 1.2rem; font-size: 2rem; font-weight: 900;
-                             color: #4F6EF7; letter-spacing: -0.04em;">
-                    {score}<span style="font-size: 1rem; color: #4A5568; font-weight: 400;">/100</span>
+                             color: #6C5CE0; letter-spacing: -0.04em;">
+                    {score}<span style="font-size: 1rem; color: #86859A; font-weight: 400;">/100</span>
                 </div>
-                <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em;
-                             color: #4A5568; margin-top: 0.2rem;">Composite Investment Score</div>
+                <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em;
+                             color: #86859A; margin-top: 0.2rem;">Composite Investment Score</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -291,9 +306,9 @@ if data:
     with tab4:
         questions = data.get("key_diligence_questions", [])
         items_html = "".join(
-            f"""<div style="display: flex; gap: 0.8rem; padding: 0.65rem 0; border-bottom: 1px solid #1A2744; align-items: flex-start;">
-<span style="font-size: 0.7rem; color: #4F6EF7; font-family: 'JetBrains Mono', monospace; margin-top: 2px; flex-shrink: 0;">Q{i:02d}</span>
-<span style="font-size: 0.85rem; color: #8892B0; line-height: 1.6;">{q}</span>
+            f"""<div style="display: flex; gap: 0.8rem; padding: 0.65rem 0; border-bottom: 1px solid #E4E0D6; align-items: flex-start;">
+<span style="font-size: 0.7rem; color: #6C5CE0; font-family: 'JetBrains Mono', monospace; margin-top: 2px; flex-shrink: 0;">Q{i:02d}</span>
+<span style="font-size: 0.85rem; color: #5B5A66; line-height: 1.6;">{esc(q)}</span>
 </div>"""
             for i, q in enumerate(questions, 1)
         )
@@ -305,35 +320,27 @@ if data:
             unsafe_allow_html=True,
         )
 
-# ── Recent analyses (sidebar) ──────────────────────────────────────────────────
+# ── Recent analyses ─────────────────────────────────────────────────────────────
 recent = get_all_startup_analyses()[:5]
 if recent:
-    st.sidebar.markdown(
-        """
-        <div style="padding: 1rem 1.5rem 0.3rem; font-size: 0.65rem; text-transform: uppercase;
-                    letter-spacing: 0.18em; color: #4A5568; font-weight: 600; margin-top: 1rem;">
-            Recent Analyses
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    for r in recent:
-        score_val = int(r["investment_score"] or 0)
-        rec_val   = (r["recommendation"] or "—").upper()
-        colors    = {"INVEST": "#10B981", "PASS": "#F43F5E", "MONITOR": "#F59E0B"}
-        c = colors.get(rec_val, "#4A5568")
-        st.sidebar.markdown(
-            f"""
-            <div style="padding: 0.5rem 1.5rem; border-bottom: 1px solid #1A2744;
-                        cursor: pointer; transition: background 0.15s;">
-                <div style="font-size: 0.78rem; font-weight: 600; color: #F0F4FF;">{r['company_name']}</div>
-                <div style="font-size: 0.68rem; color: #4A5568; font-family: 'JetBrains Mono', monospace;">
-                    {score_val}/100 · <span style="color:{c};">{rec_val}</span>
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.expander("Recent Analyses", expanded=False):
+        for r in recent:
+            score_val = int(r["investment_score"] or 0)
+            rec_val   = (r["recommendation"] or "—").upper()
+            colors    = {"INVEST": "#2F7D5C", "PASS": "#B23B3B", "MONITOR": "#A6791F"}
+            c = colors.get(rec_val, "#86859A")
+            st.markdown(
+                f"""
+                <div style="padding: 0.5rem 0; border-bottom: 1px solid #E4E0D6;">
+                    <div style="font-size: 0.78rem; font-weight: 600; color: #1E1B4B;">{esc(r['company_name'])}</div>
+                    <div style="font-size: 0.68rem; color: #86859A; font-family: 'JetBrains Mono', monospace;">
+                        {score_val}/100 · <span style="color:{c};">{rec_val}</span>
+                    </div>
                 </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    if st.sidebar.button("Load Last Analysis", key="load_last"):
-        st.session_state["last_startup_analysis"] = recent[0]["data"]
-        st.rerun()
+                """,
+                unsafe_allow_html=True,
+            )
+        if st.button("Load Last Analysis", key="load_last"):
+            st.session_state["last_startup_analysis"] = recent[0]["data"]
+            st.rerun()

@@ -1,7 +1,11 @@
 """
 VentureFlow AI — Global Styles & CSS Injection
-Cinematic dark-mode institutional UI.
+Light editorial institutional UI, styled after real-world VC firm sites
+(warm cream ground, navy serif headlines, lavender accent, white cards).
 """
+
+import html as _html
+import re as _re
 
 import streamlit as st
 
@@ -10,26 +14,35 @@ VENTUREFLOW_CSS = """
 <style>
 /* ═══════════════════════════════════════════════
    FONTS & ROOT VARIABLES
+   Editorial VC-site palette — warm cream ground, deep
+   navy text, a single lavender accent, white cards with
+   soft shadows. Serif display font for headlines, Inter
+   for body/data.
 ═══════════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Lora:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-    --bg-void:        #050810;
-    --bg-surface:     #0D1117;
-    --bg-card:        #0F1629;
-    --bg-elevated:    #111827;
-    --border-subtle:  #1A2744;
-    --border-active:  #2D3A6B;
-    --accent-indigo:  #4F6EF7;
-    --accent-cyan:    #00D4FF;
-    --accent-emerald: #10B981;
-    --accent-amber:   #F59E0B;
-    --accent-rose:    #F43F5E;
-    --text-primary:   #F0F4FF;
-    --text-secondary: #8892B0;
-    --text-tertiary:  #4A5568;
-    --glow-indigo:    rgba(79, 110, 247, 0.15);
-    --glow-cyan:      rgba(0, 212, 255, 0.12);
+    --bg-void:        #F0EEE8;
+    --bg-surface:     #F7F5F0;
+    --bg-card:        #FFFFFF;
+    --bg-elevated:    #F7F5F0;
+    --border-subtle:  #E4E0D6;
+    --border-active:  #CFC9BA;
+    --accent-primary: #6C5CE0;
+    --accent-navy:    #1E1B4B;
+    --accent-blue:    #6C5CE0;
+    --accent-emerald: #2F7D5C;
+    --accent-amber:   #A6791F;
+    --accent-rose:    #B23B3B;
+    --text-primary:   #1E1B4B;
+    --text-secondary: #5B5A66;
+    --text-tertiary:  #86859A;
+    --font-serif:     'Lora', Georgia, serif;
+    /* Back-compat aliases so existing markup referencing the old names still resolves */
+    --accent-indigo:  var(--accent-blue);
+    --accent-cyan:    var(--accent-blue);
+    --glow-indigo:    rgba(108, 92, 224, 0.08);
+    --glow-cyan:      rgba(108, 92, 224, 0.06);
 }
 
 /* ═══════════════════════════════════════════════
@@ -42,86 +55,105 @@ html, body, .stApp {
 }
 
 .stApp {
-    background: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-                radial-gradient(ellipse at 20% 0%, rgba(79,110,247,0.04) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 10%, rgba(0,212,255,0.03) 0%, transparent 50%),
-                var(--bg-void) !important;
-    background-size: 32px 32px, 32px 32px, 100% 100%, 100% 100%, 100% 100%;
+    background: var(--bg-void) !important;
 }
 
-/* Hide Streamlit branding */
+/* Hide Streamlit branding. IMPORTANT: do not override the header's height/
+   layout via CSS — Streamlit's own JS measures the header's rendered height
+   at runtime to position the sidebar (confirmed in the bundled source: the
+   sidebar section takes an `adjustTop` prop derived from that measurement).
+   Forcing a CSS height here desyncs that measurement and breaks the sidebar
+   collapse/expand toggle. Only recolor it; `toolbarMode = "minimal"` in
+   .streamlit/config.toml is what actually shrinks it, via a path Streamlit's
+   own layout code accounts for. */
 #MainMenu, footer {visibility: hidden;}
-header {background: transparent !important;}
-.stDeployButton, .stAppDeployButton, [data-testid="stToolbar"] {display: none !important;}
+header[data-testid="stHeader"] {
+    background: var(--bg-void) !important;
+}
+.stDeployButton, .stAppDeployButton {display: none !important;}
 
 /* ═══════════════════════════════════════════════
-   SIDEBAR
+   SIDEBAR — hidden entirely. Navigation moved to a top
+   nav bar (render_top_nav) matching the reference site's
+   layout. Hiding via display:none (not width/position
+   tricks) so nothing is left in the layout flow to
+   desync Streamlit's own measurements — this removes the
+   sidebar and its own collapse button together, since the
+   button is nested inside it. The separate re-open arrow
+   (stExpandSidebarButton) needs its own rule since it
+   renders outside the sidebar precisely so it survives
+   the sidebar being collapsed/hidden.
 ═══════════════════════════════════════════════ */
-section[data-testid="stSidebar"] {
-    background: var(--bg-surface) !important;
-    border-right: 1px solid var(--border-subtle) !important;
-    padding-top: 0 !important;
+section[data-testid="stSidebar"],
+[data-testid="stExpandSidebarButton"] {
+    display: none !important;
 }
 
-section[data-testid="stSidebar"] > div {
-    padding-top: 1rem;
-}
-
-.sidebar-logo {
-    padding: 1.2rem 1.5rem 1rem;
+/* ═══════════════════════════════════════════════
+   TOP NAV BAR
+   Sticky brand + page links, replacing the sidebar as the
+   single navigation surface. Lives inside block-container
+   (our own territory) as the first rendered element on
+   every page — block-container's default top padding
+   already clears Streamlit's header, so this never
+   overlaps it (confirmed via DevTools: header is 60px,
+   block-container padding-top is 96px).
+═══════════════════════════════════════════════ */
+.st-key-topnav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg-void);
     border-bottom: 1px solid var(--border-subtle);
-    margin-bottom: 0.5rem;
+    /* block-container's default top padding is 96px, sized to clear a taller
+       header than the 60px one toolbarMode=minimal actually renders (both
+       measured directly via DevTools) — leaving a 36px dead gap above this
+       bar. Pulling up by exactly that measured difference (not a guess)
+       closes the gap while leaving exactly enough room for the header,
+       nothing more. Horizontal margin still bleeds the bar edge-to-edge. */
+    margin: -2.25rem -2.5rem 1.3rem;
+    padding: 0.9rem 2.5rem;
 }
 
-.sidebar-logo .logo-text {
-    font-size: 1.3rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    background: linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+.topnav-brand {
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+    line-height: 1.6;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
 }
 
-.sidebar-logo .logo-sub {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: var(--text-tertiary);
-    margin-top: 2px;
+.st-key-topnav [data-testid="stPageLink"] a {
+    font-size: 0.82rem !important;
+    color: var(--text-secondary) !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
 }
 
-.status-indicator {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0.5rem 1.5rem;
-    font-size: 0.72rem;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+.st-key-topnav [data-testid="stPageLink"] a:hover {
+    color: var(--accent-primary) !important;
 }
 
-.status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent-emerald);
-    box-shadow: 0 0 6px var(--accent-emerald);
-    animation: pulse-dot 2s infinite;
-}
-
-@keyframes pulse-dot {
-    0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--accent-emerald); }
-    50% { opacity: 0.6; box-shadow: 0 0 12px var(--accent-emerald); }
+.st-key-topnav [data-testid="stPageLink"] a[aria-current="page"] {
+    color: var(--accent-primary) !important;
+    font-weight: 700 !important;
 }
 
 /* ═══════════════════════════════════════════════
    MAIN CONTENT AREA
 ═══════════════════════════════════════════════ */
-.main .block-container {
-    padding: 1.5rem 2.5rem 2.5rem !important;
+.main .block-container,
+div[data-testid="stMainBlockContainer"] {
+    /* Deliberately NOT overriding padding-top: Streamlit sets it to clear the
+       height of its own header/toolbar element above. An earlier override here
+       (padding: 0.75rem ...) cut that clearance away, which let page content
+       slide up underneath the header and get visually clipped by it — this is
+       what DevTools showed (stToolbar sitting in front of the page title).
+       Only override the sides we actually need to change. */
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+    padding-bottom: 2.5rem !important;
     max-width: 1200px !important;
 }
 
@@ -129,93 +161,74 @@ section[data-testid="stSidebar"] > div {
    PAGE HEADER
 ═══════════════════════════════════════════════ */
 .page-header {
-    margin-bottom: 2rem;
-    padding-bottom: 1.25rem;
+    margin-bottom: 1.1rem;
+    padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--border-subtle);
 }
 
-.page-header h1 {
+.page-header .page-title {
+    display: block;
+    font-family: var(--font-serif);
     font-size: 1.65rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
+    line-height: 1.5;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     color: var(--text-primary);
     margin: 0 0 0.3rem;
 }
 
 .page-header .page-subtitle {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     color: var(--text-secondary);
     font-weight: 400;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.01em;
 }
 
 .gradient-text {
-    background: linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--accent-primary);
 }
 
 /* ═══════════════════════════════════════════════
-   GLASS CARDS
+   CARDS
 ═══════════════════════════════════════════════ */
 .glass-card {
-    background: rgba(13, 17, 23, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 1.5rem 1.7rem;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 1.3rem 1.5rem;
     position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(30, 27, 75, 0.05), 0 1px 2px rgba(30, 27, 75, 0.04);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .glass-card:hover {
-    border-color: rgba(79, 110, 247, 0.4);
-    box-shadow: 0 8px 32px var(--glow-indigo), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-}
-
-.glass-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--accent-indigo), transparent);
-    opacity: 0.4;
+    border-color: var(--border-active);
+    box-shadow: 0 4px 14px rgba(30, 27, 75, 0.09), 0 1px 3px rgba(30, 27, 75, 0.06);
 }
 
 .metric-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 8px;
-    padding: 1.1rem 1.3rem;
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
     text-align: center;
-    transition: all 0.2s ease;
-}
-
-.metric-card:hover {
-    border-color: var(--border-active);
-    transform: translateY(-1px);
+    box-shadow: 0 1px 3px rgba(30, 27, 75, 0.05), 0 1px 2px rgba(30, 27, 75, 0.04);
 }
 
 .metric-card .metric-value {
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    color: var(--accent-indigo);
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
     line-height: 1;
 }
 
 .metric-card .metric-label {
-    font-size: 0.68rem;
+    font-size: 0.66rem;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.08em;
     color: var(--text-secondary);
-    margin-top: 0.3rem;
+    margin-top: 0.35rem;
 }
 
 /* ═══════════════════════════════════════════════
@@ -236,7 +249,7 @@ section[data-testid="stSidebar"] > div {
     height: 90px;
     border-radius: 50%;
     background: conic-gradient(
-        var(--accent-indigo) calc(var(--score) * 1%),
+        var(--accent-primary) calc(var(--score) * 1%),
         var(--border-subtle) 0
     );
     position: relative;
@@ -247,7 +260,7 @@ section[data-testid="stSidebar"] > div {
     position: absolute;
     inset: 6px;
     border-radius: 50%;
-    background: var(--bg-void);
+    background: var(--bg-card);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -282,11 +295,11 @@ section[data-testid="stSidebar"] > div {
     transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.score-bar-fill.indigo { background: linear-gradient(90deg, #3B4FD4, var(--accent-indigo)); }
-.score-bar-fill.cyan   { background: linear-gradient(90deg, #0099CC, var(--accent-cyan)); }
-.score-bar-fill.emerald{ background: linear-gradient(90deg, #059669, var(--accent-emerald)); }
-.score-bar-fill.amber  { background: linear-gradient(90deg, #D97706, var(--accent-amber)); }
-.score-bar-fill.rose   { background: linear-gradient(90deg, #C0102A, var(--accent-rose)); }
+.score-bar-fill.indigo { background: var(--accent-blue); }
+.score-bar-fill.cyan   { background: var(--accent-blue); }
+.score-bar-fill.emerald{ background: var(--accent-emerald); }
+.score-bar-fill.amber  { background: var(--accent-amber); }
+.score-bar-fill.rose   { background: var(--accent-rose); }
 
 /* ═══════════════════════════════════════════════
    INTELLIGENCE SECTIONS
@@ -296,10 +309,10 @@ section[data-testid="stSidebar"] > div {
 }
 
 .intel-section-header {
-    font-size: 0.68rem;
+    font-size: 0.66rem;
     text-transform: uppercase;
-    letter-spacing: 0.18em;
-    color: var(--accent-indigo);
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
     font-weight: 600;
     margin-bottom: 0.6rem;
     padding-bottom: 0.4rem;
@@ -315,47 +328,37 @@ section[data-testid="stSidebar"] > div {
 .intel-tag {
     display: inline-block;
     padding: 2px 10px;
-    border-radius: 999px;
+    border-radius: 3px;
     font-size: 0.7rem;
     font-weight: 500;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.01em;
     margin: 2px;
 }
 
-.intel-tag.positive { background: rgba(16,185,129,0.12); color: var(--accent-emerald); border: 1px solid rgba(16,185,129,0.25); }
-.intel-tag.negative { background: rgba(244,63,94,0.12);  color: var(--accent-rose);    border: 1px solid rgba(244,63,94,0.25); }
-.intel-tag.neutral  { background: rgba(79,110,247,0.1);  color: var(--accent-indigo);  border: 1px solid rgba(79,110,247,0.2); }
-.intel-tag.warning  { background: rgba(245,158,11,0.1);  color: var(--accent-amber);   border: 1px solid rgba(245,158,11,0.2); }
+.intel-tag.positive { background: rgba(47,125,92,0.1);  color: var(--accent-emerald); border: 1px solid rgba(47,125,92,0.25); }
+.intel-tag.negative { background: rgba(178,59,59,0.1);  color: var(--accent-rose);    border: 1px solid rgba(178,59,59,0.25); }
+.intel-tag.neutral  { background: rgba(108,92,224,0.1); color: var(--accent-blue);   border: 1px solid rgba(108,92,224,0.25); }
+.intel-tag.warning  { background: rgba(166,121,31,0.1); color: var(--accent-amber);  border: 1px solid rgba(166,121,31,0.25); }
 
 /* ═══════════════════════════════════════════════
    RECOMMENDATION BANNER
 ═══════════════════════════════════════════════ */
 .rec-banner {
-    border-radius: 8px;
-    padding: 1rem 1.4rem;
+    border-radius: 4px;
+    padding: 0.85rem 1.2rem;
     margin: 1rem 0;
-    border-left: 3px solid;
-    font-size: 0.875rem;
+    border-left: 2px solid;
+    font-size: 0.85rem;
     line-height: 1.6;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
 }
 
-.rec-banner.invest {
-    background: rgba(16,185,129,0.08);
-    border-color: var(--accent-emerald);
-    color: var(--accent-emerald);
-}
+.rec-banner.invest  { border-color: var(--accent-emerald); }
+.rec-banner.pass    { border-color: var(--accent-rose); }
+.rec-banner.monitor { border-color: var(--accent-amber); }
 
-.rec-banner.pass {
-    background: rgba(244,63,94,0.08);
-    border-color: var(--accent-rose);
-    color: var(--accent-rose);
-}
-
-.rec-banner.monitor {
-    background: rgba(245,158,11,0.08);
-    border-color: var(--accent-amber);
-    color: var(--accent-amber);
-}
+.rec-banner strong { color: var(--text-primary); letter-spacing: 0.04em; }
 
 /* ═══════════════════════════════════════════════
    STREAMLIT COMPONENT OVERRIDES
@@ -363,73 +366,82 @@ section[data-testid="stSidebar"] > div {
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea,
 .stSelectbox > div > div {
-    background: rgba(13, 17, 23, 0.8) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 8px !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-active) !important;
+    border-radius: 5px !important;
     color: var(--text-primary) !important;
     font-size: 0.875rem !important;
     font-family: 'Inter', sans-serif !important;
-    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-    transition: all 0.2s ease !important;
+    transition: border-color 0.15s ease !important;
+}
+
+.stTextInput > div > div > input::placeholder,
+.stTextArea > div > div > textarea::placeholder {
+    color: var(--text-tertiary) !important;
+    opacity: 1 !important;
 }
 
 .stTextInput > div > div > input:focus,
 .stTextArea > div > div > textarea:focus {
-    border-color: rgba(79, 110, 247, 0.5) !important;
-    box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.15), inset 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    border-color: var(--accent-primary) !important;
+    box-shadow: none !important;
 }
 
 .stButton > button {
-    background: linear-gradient(180deg, #5C7CFA 0%, #4F6EF7 100%) !important;
-    color: white !important;
-    border: 1px solid #3B4FD4 !important;
-    border-radius: 6px !important;
+    background: var(--accent-navy) !important;
+    color: #FFFFFF !important;
+    border: 1px solid var(--accent-navy) !important;
+    border-radius: 4px !important;
     font-weight: 600 !important;
-    font-size: 0.82rem !important;
-    letter-spacing: 0.04em !important;
-    padding: 0.5rem 1.4rem !important;
-    transition: all 0.2s ease !important;
+    font-size: 0.78rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+    padding: 0.55rem 1rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    transition: opacity 0.15s ease !important;
     font-family: 'Inter', sans-serif !important;
-    box-shadow: 0 2px 10px rgba(79,110,247,0.3), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+    box-shadow: none !important;
 }
 
 .stButton > button:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 6px 20px rgba(79,110,247,0.4), inset 0 1px 0 rgba(255,255,255,0.3) !important;
-    background: linear-gradient(180deg, #6C8CFF 0%, #5C7CFA 100%) !important;
+    opacity: 0.85 !important;
 }
 
-.stButton > button[kind="secondary"] {
-    background: var(--bg-elevated) !important;
-    border: 1px solid var(--border-active) !important;
-    color: var(--text-secondary) !important;
-}
+/* Note: every st.button() call in this app is a primary action (Run Analysis,
+   Generate Memo, etc.) — none pass type="secondary" — but Streamlit's default
+   `kind` attribute on a plain st.button() is still "secondary". A prior
+   `[kind="secondary"]` override here was silently winning (same specificity,
+   declared later) and turning every button white/outlined instead of solid
+   navy. Removed rather than re-added, since this app has no actual two-tier
+   button hierarchy to express. */
 
 .stDownloadButton > button {
-    background: linear-gradient(135deg, var(--accent-emerald), #059669) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 6px !important;
+    background: var(--bg-card) !important;
+    color: var(--accent-navy) !important;
+    border: 1px solid var(--accent-navy) !important;
+    border-radius: 4px !important;
     font-weight: 600 !important;
-    font-size: 0.82rem !important;
-    letter-spacing: 0.04em !important;
+    font-size: 0.78rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
 }
 
 /* Spinner / loading */
 .stSpinner > div {
-    border-top-color: var(--accent-indigo) !important;
+    border-top-color: var(--accent-primary) !important;
 }
 
 /* Divider */
 hr {
     border-color: var(--border-subtle) !important;
-    margin: 1.5rem 0 !important;
+    margin: 1.1rem 0 !important;
 }
 
 /* Tabs */
 .stTabs [data-baseweb="tab-list"] {
-    background: var(--bg-surface) !important;
-    border-radius: 8px 8px 0 0 !important;
+    background: transparent !important;
     border-bottom: 1px solid var(--border-subtle) !important;
     gap: 0 !important;
 }
@@ -437,23 +449,22 @@ hr {
 .stTabs [data-baseweb="tab"] {
     font-size: 0.78rem !important;
     font-weight: 500 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.08em !important;
+    letter-spacing: 0.02em !important;
     color: var(--text-secondary) !important;
-    padding: 0.7rem 1.2rem !important;
+    padding: 0.6rem 1.1rem !important;
 }
 
 .stTabs [aria-selected="true"] {
-    color: var(--accent-indigo) !important;
+    color: var(--text-primary) !important;
     background: transparent !important;
-    border-bottom: 2px solid var(--accent-indigo) !important;
+    border-bottom: 2px solid var(--accent-primary) !important;
 }
 
 /* Expander */
 .streamlit-expanderHeader {
     background: var(--bg-card) !important;
     border: 1px solid var(--border-subtle) !important;
-    border-radius: 6px !important;
+    border-radius: 5px !important;
     font-size: 0.82rem !important;
     font-weight: 500 !important;
     color: var(--text-primary) !important;
@@ -461,36 +472,47 @@ hr {
 
 /* Alerts */
 .stAlert {
-    border-radius: 6px !important;
+    border-radius: 5px !important;
     border: 1px solid var(--border-subtle) !important;
 }
 
 /* Progress */
 .stProgress > div > div > div {
-    background: linear-gradient(90deg, var(--accent-indigo), var(--accent-cyan)) !important;
+    background: var(--accent-primary) !important;
     border-radius: 999px !important;
 }
 
-/* Sidebar nav links */
+/* Sidebar nav links — the real current test-id is stSidebarNavLink (verified
+   against the installed Streamlit build); the old ".stSidebarNav a" selector
+   never matched anything, so nav links were unstyled/default-colored. */
+[data-testid="stSidebarNavLink"],
 .stSidebarNav a {
-    font-size: 0.82rem !important;
-    color: var(--text-secondary) !important;
-    font-weight: 400 !important;
-    padding: 0.4rem 1rem !important;
-    border-radius: 6px !important;
-    transition: all 0.15s ease !important;
-    letter-spacing: 0.02em !important;
-}
-
-.stSidebarNav a:hover {
+    font-size: 0.85rem !important;
     color: var(--text-primary) !important;
-    background: rgba(79,110,247,0.08) !important;
+    font-weight: 500 !important;
+    padding: 0.5rem 1rem !important;
+    border-radius: 4px !important;
+    transition: background 0.15s ease !important;
+    letter-spacing: 0.01em !important;
 }
 
+[data-testid="stSidebarNavLink"] span,
+.stSidebarNav a span {
+    color: inherit !important;
+}
+
+[data-testid="stSidebarNavLink"]:hover,
+.stSidebarNav a:hover {
+    color: var(--accent-primary) !important;
+    background: var(--bg-elevated) !important;
+}
+
+[data-testid="stSidebarNavLink"][aria-current="page"],
 .stSidebarNav a[aria-current="page"] {
-    color: var(--accent-indigo) !important;
-    background: rgba(79,110,247,0.1) !important;
-    font-weight: 500 !important;
+    color: var(--accent-primary) !important;
+    background: var(--bg-elevated) !important;
+    font-weight: 700 !important;
+    box-shadow: inset 3px 0 0 var(--accent-primary) !important;
 }
 
 /* ═══════════════════════════════════════════════
@@ -500,10 +522,10 @@ hr {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 1rem 1.4rem;
+    padding: 0.85rem 1.2rem;
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 8px;
+    border-radius: 5px;
     margin: 1rem 0;
 }
 
@@ -513,10 +535,10 @@ hr {
 }
 
 .ai-loading .dot {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
-    background: var(--accent-indigo);
+    background: var(--accent-primary);
     animation: bounce 1.4s infinite ease-in-out both;
 }
 
@@ -541,30 +563,34 @@ hr {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: 10px;
-    padding: 2rem 2.5rem;
+    padding: 1.8rem 2.2rem;
     font-size: 0.875rem;
     line-height: 1.8;
     color: var(--text-secondary);
+    box-shadow: 0 1px 3px rgba(30, 27, 75, 0.05), 0 1px 2px rgba(30, 27, 75, 0.04);
 }
 
 .memo-header {
     text-align: center;
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.1rem;
     border-bottom: 1px solid var(--border-subtle);
 }
 
 .memo-title {
+    font-family: var(--font-serif);
     font-size: 1.4rem;
-    font-weight: 700;
+    line-height: 1.4;
+    font-weight: 600;
     color: var(--text-primary);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.005em;
+    padding-top: 0.15rem;
 }
 
 .memo-subtitle {
     font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.08em;
     color: var(--text-tertiary);
     margin-top: 0.4rem;
 }
@@ -572,8 +598,8 @@ hr {
 .memo-section-title {
     font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: var(--accent-indigo);
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
     font-weight: 600;
     margin: 1.5rem 0 0.6rem;
 }
@@ -595,22 +621,25 @@ hr {
 }
 
 .founder-avatar {
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan));
+    background: #E9E6F9;
+    border: 1px solid var(--border-subtle);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    color: white;
+    color: var(--accent-primary);
     flex-shrink: 0;
 }
 
 .founder-name {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+    line-height: 1.4;
+    font-weight: 600;
     color: var(--text-primary);
 }
 
@@ -634,17 +663,11 @@ hr {
 .activity-item:last-child { border-bottom: none; }
 
 .activity-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     margin-top: 5px;
     flex-shrink: 0;
-    animation: activity-pulse 2s infinite ease-in-out alternate;
-}
-
-@keyframes activity-pulse {
-    0% { opacity: 0.6; filter: drop-shadow(0 0 2px currentColor); }
-    100% { opacity: 1; filter: drop-shadow(0 0 12px currentColor); }
 }
 
 .activity-content {
@@ -674,20 +697,20 @@ hr {
 
 .callout.bull {
     border-color: var(--accent-emerald);
-    background: rgba(16,185,129,0.06);
-    color: rgba(16,185,129,0.9);
+    background: var(--bg-elevated);
+    color: var(--accent-emerald);
 }
 
 .callout.bear {
     border-color: var(--accent-rose);
-    background: rgba(244,63,94,0.06);
-    color: rgba(244,63,94,0.9);
+    background: var(--bg-elevated);
+    color: var(--accent-rose);
 }
 
 .callout.info {
-    border-color: var(--accent-indigo);
-    background: rgba(79,110,247,0.06);
-    color: rgba(79,110,247,0.9);
+    border-color: var(--accent-blue);
+    background: var(--bg-elevated);
+    color: var(--accent-blue);
 }
 
 /* ═══════════════════════════════════════════════
@@ -705,16 +728,16 @@ hr {
     min-width: 120px;
     background: var(--bg-elevated);
     border: 1px solid var(--border-subtle);
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 0.9rem 1rem;
     text-align: center;
 }
 
 .stat-item .stat-number {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--accent-cyan);
-    letter-spacing: -0.03em;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
     font-family: 'JetBrains Mono', monospace;
 }
 
@@ -761,29 +784,46 @@ def inject_styles() -> None:
     st.markdown(VENTUREFLOW_CSS, unsafe_allow_html=True)
 
 
-def render_sidebar_logo() -> None:
-    """Render the VentureFlow logo in the sidebar."""
-    st.sidebar.markdown(
-        """
-        <div class="sidebar-logo">
-            <div class="logo-text">VentureFlow AI</div>
-            <div class="logo-sub">Workflow Infrastructure</div>
-        </div>
-        <div class="status-indicator">
-            <div class="status-dot"></div>
-            Intelligence Layer Active
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+PAGES = [
+    ("0_Home_Dashboard.py", "Home"),
+    ("pages/1_Startup_Analyzer.py", "Startup Analyzer"),
+    ("pages/2_Founder_Intelligence.py", "Founder Intelligence"),
+    ("pages/3_Memo_Generator.py", "Memo Generator"),
+    ("pages/4_Market_Graph.py", "Market Graph"),
+    ("pages/5_System_Intelligence.py", "Settings"),
+]
+
+
+def render_top_nav() -> None:
+    """Render the single top nav bar: brand + page links. This replaces the
+    sidebar as the only navigation surface in the app (the sidebar is hidden
+    via CSS) — call this once, as the first thing rendered on every page,
+    right after inject_styles()."""
+    with st.container(key="topnav"):
+        # Column widths scale with label length so longer labels (e.g.
+        # "Founder Intelligence") don't clip inside an equally-sized column
+        # meant for a short one (e.g. "Home") — a uniform ratio was cutting
+        # text off in longer links.
+        ratios = [2.0] + [max(0.8, len(label) / 9) for _, label in PAGES]
+        cols = st.columns(ratios)
+        with cols[0]:
+            st.markdown('<div class="topnav-brand">VentureFlow AI</div>', unsafe_allow_html=True)
+        for col, (page_path, label) in zip(cols[1:], PAGES):
+            with col:
+                st.page_link(page_path, label=label)
 
 
 def page_header(title: str, subtitle: str) -> None:
-    """Render a standardised page header."""
+    """Render a standardised page header.
+
+    Deliberately a <div>, not <h1> — Streamlit applies its own default
+    heading styles/behavior to h1-h6 markdown output that fought with our
+    serif override in ways that clipped or hid the text entirely. A plain
+    div sidesteps that inherited styling completely."""
     st.markdown(
         f"""
         <div class="page-header">
-            <h1>{title}</h1>
+            <div class="page-title">{title}</div>
             <div class="page-subtitle">{subtitle}</div>
         </div>
         """,
@@ -813,8 +853,8 @@ def intel_tag(text: str, kind: str = "neutral") -> str:
 
 def rec_banner(text: str, kind: str = "monitor") -> str:
     """Return an HTML recommendation banner."""
-    icons = {"invest": "▲ INVEST", "pass": "▼ PASS", "monitor": "◈ MONITOR"}
-    label = icons.get(kind, "◈ MONITOR")
+    labels = {"invest": "INVEST", "pass": "PASS", "monitor": "MONITOR"}
+    label = labels.get(kind, "MONITOR")
     return f"""
     <div class="rec-banner {kind}">
         <strong>{label}</strong> — {text}
@@ -839,6 +879,81 @@ def loading_indicator(message: str = "AI Intelligence Engine Processing...") -> 
 def glass_card(content: str) -> str:
     """Wrap content in a glass card."""
     return f'<div class="glass-card">{content}</div>'
+
+
+def esc(value) -> str:
+    """Escape a value for safe interpolation into raw-HTML markdown blocks —
+    neutralizes characters (<, >, &, backticks) that could otherwise be
+    misread as HTML tags or trigger unintended Markdown parsing."""
+    if value is None:
+        return ""
+    return _html.escape(str(value), quote=False).replace("`", "&#96;")
+
+
+def flatten_html(fragment: str) -> str:
+    """Collapse a dynamically-built (often loop-concatenated) HTML fragment to
+    single-line tags. Streamlit's markdown-in-HTML renderer follows CommonMark's
+    HTML-block rules: raw HTML built across multiple lines with heavy leading
+    indentation (as happens naturally when an f-string sits inside nested Python
+    blocks) can be misread as an indented code block after the first entry in a
+    loop, silently dumping literal escaped tags into the page. Collapsing
+    whitespace before interpolation avoids that whole failure class."""
+    if not fragment:
+        return fragment
+    return _re.sub(r">\s+<", "><", _re.sub(r"\s+", " ", fragment)).strip()
+
+
+def data_source_badge(meta: dict) -> str:
+    """Return an HTML badge + source list showing whether an analysis is
+    grounded in real fetched data or inferred from LLM training knowledge.
+    `meta` is the `_meta` dict attached by core.ai_engine to every result."""
+    if not meta:
+        return ""
+
+    confidence = meta.get("confidence", "inferred")
+    style_map = {
+        "grounded": ("#2F7D5C", "GROUNDED", "Backed by 2+ live data sources"),
+        "partial":  ("#A6791F", "PARTIAL",  "Backed by 1 live data source"),
+        "inferred": ("#B23B3B", "AI-INFERRED", "No live data fetched — LLM knowledge/guess only"),
+    }
+    color, label, tooltip = style_map.get(confidence, style_map["inferred"])
+
+    chips = []
+    if meta.get("used_website_scrape"):
+        chips.append("Website scraped")
+    if meta.get("used_web_search"):
+        n = len(meta.get("web_sources", []))
+        chips.append(f"Web search ({n} sources)")
+    if meta.get("used_github"):
+        chips.append("GitHub profile")
+
+    sources = meta.get("web_sources", [])
+    source_links = "".join(
+        f'<a href="{s}" target="_blank" style="display:block;color:#6C5CE0;font-size:0.72rem;'
+        f'margin-top:2px;text-decoration:none;overflow:hidden;text-overflow:ellipsis;'
+        f'white-space:nowrap;">&#8599; {s}</a>'
+        for s in sources
+    )
+    github_url = meta.get("github_profile_url")
+    if github_url:
+        source_links += (
+            f'<a href="{github_url}" target="_blank" style="display:block;color:#6C5CE0;'
+            f'font-size:0.72rem;margin-top:2px;text-decoration:none;">&#8599; {github_url}</a>'
+        )
+
+    return f"""
+    <div style="margin: 0.6rem 0 1rem; padding: 0.65rem 1rem; background: var(--bg-elevated);
+                border: 1px solid var(--border-subtle); border-radius: 5px;">
+        <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+            <span title="{tooltip}" style="font-size:0.65rem; font-weight:700; letter-spacing:0.04em;
+                        color:{color}; background:{color}1a; padding:2px 8px; border-radius:3px;">
+                {label}
+            </span>
+            <span style="font-size:0.72rem; color:var(--text-secondary);">{" · ".join(chips) if chips else "No live sources fetched"}</span>
+        </div>
+        {f'<div style="margin-top:0.5rem;">{source_links}</div>' if source_links else ""}
+    </div>
+    """
 
 
 def intel_section(header: str, content: str) -> str:
