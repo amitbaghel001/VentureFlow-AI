@@ -246,7 +246,7 @@ with col_act:
                     color: #86859A; font-weight: 600; margin-bottom: 1rem;">
             System Activity
         </div>
-        <div class="glass-card" style="padding: 1rem 1.4rem;">
+        <div class="glass-card" style="padding: 1rem 1.4rem; min-height: 260px;">
             <div class="activity-item">
                 <div class="activity-dot" style="background:#6C5CE0;"></div>
                 <div><div class="activity-content">Founder profile generated: <strong style="color:#1E1B4B">Aman Gupta</strong></div><div class="activity-time">Just now</div></div>
@@ -275,7 +275,7 @@ with col_recent:
                     color: #86859A; font-weight: 600; margin-bottom: 1rem;">
             Recent Analyses
         </div>
-        <div class="glass-card" style="padding: 1rem 1.4rem;">
+        <div class="glass-card" style="padding: 1rem 1.4rem; min-height: 260px; display: flex; flex-direction: column; justify-content: center;">
             <div style="display:flex; justify-content:space-between; align-items:center; font-size: 0.85rem; padding: 0.5rem 0; border-bottom: 1px solid #E4E0D6;">
                 <span style="color: #1E1B4B; font-weight: 500;">Razorpay</span>
                 <span style="color: #5B5A66; font-size: 0.7rem; letter-spacing: 0.05em;">Fintech Infrastructure</span>
