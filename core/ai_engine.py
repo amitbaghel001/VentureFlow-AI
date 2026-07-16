@@ -139,14 +139,25 @@ _PROVIDER_KEY_ENV = {
 }
 
 
+# Single source of truth for every model selectable as the "active_model" in
+# the admin System Intelligence page — (provider, model_id, display_label).
+# The admin picker imports this directly so the UI can never drift out of
+# sync with what's actually wired up in the fallback chain above. Only
+# providers with a working, funded key belong here (gpt-4o/kimi-k2.7 are
+# intentionally left out — see the commented FALLBACK_CHAIN entries).
+MODEL_CATALOG: list[tuple[str, str, str]] = [
+    ("gemini", "gemini-2.5-flash", "Gemini 2.5 Flash"),
+    ("gemini", "gemini-2.5-pro", "Gemini 2.5 Pro"),
+    ("groq", "llama-3.3-70b-versatile", "Llama 3.3 70B (Groq)"),
+    ("cerebras", "gpt-oss-120b", "GPT-OSS 120B (Cerebras)"),
+    ("openrouter", "openai/gpt-oss-20b:free", "GPT-OSS 20B (OpenRouter)"),
+]
+
+_MODEL_TO_PROVIDER = {model_id: provider for provider, model_id, _ in MODEL_CATALOG}
+
+
 def _provider_of(model_name: str) -> str:
-    if model_name.startswith("gemini"):
-        return "gemini"
-    if model_name.startswith("kimi"):
-        return "kimchi"
-    if model_name.startswith("gpt"):
-        return "openai"
-    return "groq"
+    return _MODEL_TO_PROVIDER.get(model_name, "groq")
 
 
 def _provider_configured(provider: str) -> bool:

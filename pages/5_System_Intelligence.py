@@ -11,6 +11,7 @@ import streamlit as st
 from core.auth import require_login, require_admin
 from core.styles import inject_styles, render_top_nav, page_header
 from core.config import load_config, save_config
+from core.ai_engine import MODEL_CATALOG
 
 st.set_page_config(
     page_title="System Intelligence — VentureFlow AI",
@@ -34,17 +35,20 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-models = ["gpt-4o", "gemini-2.5-flash", "gemini-2.5-pro", "llama-3.3-70b-versatile"]
-current_index = models.index(config.get("active_model", "gpt-4o")) if config.get("active_model") in models else 3
+model_ids = [model_id for _, model_id, _ in MODEL_CATALOG]
+labels_by_id = {model_id: label for _, model_id, label in MODEL_CATALOG}
+current_model = config.get("active_model", model_ids[0])
+current_index = model_ids.index(current_model) if current_model in model_ids else 0
 
 selected_model = st.selectbox(
     "Active Intelligence Model",
-    models,
+    model_ids,
     index=current_index,
-    help="Requires the appropriate API key configured (OPENAI_API_KEY, GEMINI_API_KEY, or GROQ_API_KEY)"
+    format_func=lambda mid: labels_by_id[mid],
+    help="Falls back automatically to the next configured provider on rate-limit/quota errors."
 )
 
 if st.button("Save Configuration", type="primary"):
     config["active_model"] = selected_model
     save_config(config)
-    st.success(f"System updated. VentureFlow AI is now powered by **{selected_model}**.")
+    st.success(f"System updated. VentureFlow AI is now powered by **{labels_by_id[selected_model]}**.")
