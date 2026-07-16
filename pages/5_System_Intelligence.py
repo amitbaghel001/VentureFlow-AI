@@ -8,7 +8,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import streamlit as st
-from core.auth import require_login
+from core.auth import require_login, require_admin
 from core.styles import inject_styles, render_top_nav, page_header
 from core.config import load_config, save_config
 
@@ -20,6 +20,7 @@ st.set_page_config(
 
 inject_styles()
 require_login()
+require_admin()
 render_top_nav()
 page_header("System Intelligence", "Configure active reasoning engines and API connections")
 
@@ -40,7 +41,7 @@ selected_model = st.selectbox(
     "Active Intelligence Model",
     models,
     index=current_index,
-    help="Requires the appropriate API key in your .env file (OPENAI_API_KEY or GEMINI_API_KEY)"
+    help="Requires the appropriate API key configured (OPENAI_API_KEY, GEMINI_API_KEY, or GROQ_API_KEY)"
 )
 
 if st.button("Save Configuration", type="primary"):

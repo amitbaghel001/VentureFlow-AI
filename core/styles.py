@@ -792,7 +792,6 @@ PAGES = [
     ("pages/2_Founder_Intelligence.py", "Founder Intelligence"),
     ("pages/3_Memo_Generator.py", "Memo Generator"),
     ("pages/4_Market_Graph.py", "Market Graph"),
-    ("pages/5_System_Intelligence.py", "Settings"),
 ]
 
 
