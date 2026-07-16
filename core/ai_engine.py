@@ -8,7 +8,7 @@ import os
 from typing import Any
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 
 load_dotenv()
 
@@ -48,6 +48,48 @@ def get_groq_client() -> OpenAI:
     return _client_groq
 
 
+_client_kimchi: OpenAI | None = None
+
+def get_kimchi_client() -> OpenAI:
+    global _client_kimchi
+    if _client_kimchi is None:
+        api_key = os.getenv("KIMCHI_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "KIMCHI_API_KEY not found. Please set it in your .env file."
+            )
+        _client_kimchi = OpenAI(api_key=api_key, base_url="https://llm.kimchi.dev/openai/v1")
+    return _client_kimchi
+
+
+_client_cerebras: OpenAI | None = None
+
+def get_cerebras_client() -> OpenAI:
+    global _client_cerebras
+    if _client_cerebras is None:
+        api_key = os.getenv("CEREBRAS_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "CEREBRAS_API_KEY not found. Please set it in your .env file."
+            )
+        _client_cerebras = OpenAI(api_key=api_key, base_url="https://api.cerebras.ai/v1")
+    return _client_cerebras
+
+
+_client_openrouter: OpenAI | None = None
+
+def get_openrouter_client() -> OpenAI:
+    global _client_openrouter
+    if _client_openrouter is None:
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "OPENROUTER_API_KEY not found. Please set it in your .env file."
+            )
+        _client_openrouter = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+    return _client_openrouter
+
+
 def configure_gemini():
     global _gemini_configured
     if not _gemini_configured:
@@ -61,12 +103,79 @@ def configure_gemini():
         _gemini_configured = True
 
 
-def _call_llm(system_prompt: str, user_prompt: str) -> dict[str, Any]:
-    """Core LLM call with JSON mode enabled."""
-    config = load_config()
-    model_name = config.get("active_model", "gpt-4o")
+# ─── Provider fallback chain ───────────────────────────────────────────────
+# If the active/primary provider is rate-limited or out of quota, retry on
+# the next entry here (skipping whichever provider was already tried as
+# primary) instead of surfacing the error — transparent to the end user, who
+# never sees which backend actually answered.
+#
+# OpenAI (no key funded) and Kimchi (free-tier credits exhausted) are
+# commented out rather than deleted — uncomment either the moment they're
+# funded again, no other code change needed.
+FALLBACK_CHAIN: list[tuple[str, str]] = [
+    ("gemini", "gemini-2.5-flash"),
+    ("groq", "llama-3.3-70b-versatile"),
+    ("cerebras", "gpt-oss-120b"),
+    ("openrouter", "openai/gpt-oss-20b:free"),
+    # ("kimchi", "kimi-k2.7"),
+    # ("openai", "gpt-4o"),
+]
 
+_PROVIDER_CLIENTS = {
+    "groq": get_groq_client,
+    "openai": get_openai_client,
+    "kimchi": get_kimchi_client,
+    "cerebras": get_cerebras_client,
+    "openrouter": get_openrouter_client,
+}
+
+_PROVIDER_KEY_ENV = {
+    "gemini": "GEMINI_API_KEY",
+    "cerebras": "CEREBRAS_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+    "groq": "GROQ_API_KEY",
+    "kimchi": "KIMCHI_API_KEY",
+    "openai": "OPENAI_API_KEY",
+}
+
+
+def _provider_of(model_name: str) -> str:
     if model_name.startswith("gemini"):
+        return "gemini"
+    if model_name.startswith("kimi"):
+        return "kimchi"
+    if model_name.startswith("gpt"):
+        return "openai"
+    return "groq"
+
+
+def _provider_configured(provider: str) -> bool:
+    return bool(os.getenv(_PROVIDER_KEY_ENV[provider]))
+
+
+def _is_rate_limit_error(exc: Exception) -> bool:
+    """True only for quota/rate-limit/out-of-credits errors — everything else
+    (bad JSON, missing key, network failure) is a real problem and must
+    surface, not be silently swallowed by trying every provider in turn."""
+    if isinstance(exc, RateLimitError):
+        return True
+    try:
+        from google.api_core.exceptions import ResourceExhausted
+        if isinstance(exc, ResourceExhausted):
+            return True
+    except ImportError:
+        pass
+    if getattr(exc, "status_code", None) in (429, 402):
+        return True
+    msg = str(exc).lower()
+    return any(
+        kw in msg for kw in
+        ("429", "402", "quota", "rate limit", "resource_exhausted", "credit", "exhausted")
+    )
+
+
+def _call_provider(provider: str, model_name: str, system_prompt: str, user_prompt: str) -> dict[str, Any]:
+    if provider == "gemini":
         import google.generativeai as genai
         configure_gemini()
         model = genai.GenerativeModel(
@@ -80,32 +189,55 @@ def _call_llm(system_prompt: str, user_prompt: str) -> dict[str, Any]:
         response = model.generate_content(user_prompt)
         raw = response.text or "{}"
         return json.loads(raw)
-    elif model_name.startswith("llama"):
-        client = get_groq_client()
-        response = client.chat.completions.create(
-            model=model_name,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.4,
+
+    client = _PROVIDER_CLIENTS[provider]()
+    response = client.chat.completions.create(
+        model=model_name,
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.4,
+    )
+    raw = response.choices[0].message.content or "{}"
+    return json.loads(raw)
+
+
+def _call_llm(system_prompt: str, user_prompt: str) -> dict[str, Any]:
+    """Core LLM call with JSON mode enabled. Tries the configured active
+    model first, then falls through FALLBACK_CHAIN on rate-limit/quota
+    errors only — a misconfiguration or malformed response still raises
+    immediately rather than being masked by a silent retry. Providers with
+    no API key configured are skipped rather than attempted and failed."""
+    config = load_config()
+    primary_model = config.get("active_model", "gpt-4o")
+    primary_provider = _provider_of(primary_model)
+
+    chain = [(primary_provider, primary_model)] + [
+        (p, m) for p, m in FALLBACK_CHAIN if p != primary_provider
+    ]
+    chain = [(p, m) for p, m in chain if _provider_configured(p)]
+
+    if not chain:
+        raise RuntimeError(
+            "No AI provider is configured. Set at least one of GEMINI_API_KEY, "
+            "GROQ_API_KEY, KIMCHI_API_KEY, or OPENAI_API_KEY."
         )
-        raw = response.choices[0].message.content or "{}"
-        return json.loads(raw)
-    else:
-        client = get_openai_client()
-        response = client.chat.completions.create(
-            model=model_name,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.4,
-        )
-        raw = response.choices[0].message.content or "{}"
-        return json.loads(raw)
+
+    last_error: Exception | None = None
+    for provider, model_name in chain:
+        try:
+            return _call_provider(provider, model_name, system_prompt, user_prompt)
+        except Exception as e:
+            if not _is_rate_limit_error(e):
+                raise
+            last_error = e
+            continue
+
+    raise RuntimeError(
+        f"All configured AI providers are currently rate-limited or unavailable. Last error: {last_error}"
+    )
 
 
 # ─── Startup Analysis ────────────────────────────────────────────────────────
