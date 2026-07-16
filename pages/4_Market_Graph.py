@@ -219,7 +219,10 @@ with st.container():
         if loaded:
             company_name_g = loaded.get("company_name", "")
             market_cat_g   = loaded.get("market_category", "")
-            competitors_g  = loaded.get("competitors", [])
+            competitors_g  = [
+                c.get("name", "") if isinstance(c, dict) else str(c)
+                for c in loaded.get("competitors", [])
+            ]
         else:
             company_name_g = st.text_input("Company Name", placeholder="e.g. Substrate AI")
             market_cat_g   = st.text_input("Market Category", placeholder="e.g. AI Infrastructure")
