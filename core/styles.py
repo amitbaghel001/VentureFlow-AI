@@ -787,10 +787,24 @@ hr {
    every window size in between.
 ═══════════════════════════════════════════════ */
 .live-signals-bar {
+    width: 100%;
+    box-sizing: border-box;
     flex-wrap: wrap;
     align-items: center;
     row-gap: 0.5rem;
     column-gap: 1.75rem;
+}
+
+/* Belt-and-suspenders: if a Streamlit wrapper element immediately around
+   this markdown block is itself shrink-wrapping to content rather than
+   stretching to the column's full width, force it too — without this,
+   width:100% on the bar above would just resolve against an already-shrunk
+   parent and have no visible effect. Scoped to Streamlit's own known
+   markdown-wrapper test-ids only, not arbitrary ancestors. */
+div[data-testid="stMarkdownContainer"]:has(.live-signals-bar),
+div[data-testid="stMarkdown"]:has(.live-signals-bar),
+div.element-container:has(.live-signals-bar) {
+    width: 100% !important;
 }
 
 /* ═══════════════════════════════════════════════
