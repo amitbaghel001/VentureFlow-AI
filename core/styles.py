@@ -842,6 +842,13 @@ hr {
         grid-template-columns: 1fr !important;
         gap: 0.3rem !important;
     }
+
+    /* Home dashboard's "Live Market Signals" strip — a single-row flex of
+       5 items with no wrap, wider than any phone viewport as authored. */
+    .live-signals-bar {
+        flex-wrap: wrap !important;
+        gap: 0.4rem 1rem !important;
+    }
 }
 </style>
 """
