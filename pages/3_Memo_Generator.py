@@ -232,7 +232,7 @@ if memo:
 
         <div style="height: 1px; background: #E4E0D6; margin: 1.5rem 0;"></div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.6rem;">
+        <div class="bull-bear-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.6rem;">
             <div>
                 <div style="font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em;
                             color: #2F7D5C; font-weight: 600; margin-bottom: 0.5rem;">Bull Case</div>

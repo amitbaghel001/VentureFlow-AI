@@ -399,7 +399,7 @@ if graph_data:
             t_color = "#B23B3B" if t == "direct" else "#6C5CE0"
             t_label = "DIRECT" if t == "direct" else "ADJACENT"
             tbl_html += f"""
-            <div style="display:grid;grid-template-columns:140px 80px 1fr 100px;
+            <div class="competitor-row-grid" style="display:grid;grid-template-columns:140px 80px 1fr 100px;
                         gap:0.8rem;padding:0.65rem 0;border-bottom:1px solid #E4E0D6;
                         align-items:start;font-size:0.82rem;">
                 <div style="color:#1E1B4B;font-weight:600;">{esc(c.get('name','—'))}</div>

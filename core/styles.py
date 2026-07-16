@@ -54,6 +54,7 @@ html, body, .stApp {
     background-color: var(--bg-void) !important;
     font-family: 'Inter', -apple-system, sans-serif !important;
     color: var(--text-primary) !important;
+    overflow-x: hidden;
 }
 
 .stApp {
@@ -776,6 +777,71 @@ hr {
 .competitor-name {
     color: var(--text-primary);
     font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════
+   MOBILE / NARROW VIEWPORT (≤640px, Streamlit's own
+   breakpoint for stacking st.columns into full-width
+   rows). That default is correct for two-column content
+   forms elsewhere in the app — left alone here — but wrong
+   for the top nav: without this override, "brand + 4 page
+   links" stacks into 5 full-width rows, and the sticky
+   bar's negative top-margin (tuned for one row's height)
+   then yanks that much taller block upward, clipping it
+   under Streamlit's header. Forcing just the nav row to
+   stay horizontal + scroll sideways keeps its height
+   constant so that margin math still holds.
+═══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+    .st-key-topnav [data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        gap: 0.75rem !important;
+    }
+
+    .st-key-topnav [data-testid="stHorizontalBlock"] > div {
+        width: auto !important;
+        min-width: fit-content !important;
+        flex: none !important;
+    }
+
+    .st-key-topnav {
+        padding: 0.75rem 1rem;
+        margin: -2.25rem -1rem 1.1rem;
+    }
+
+    .topnav-brand {
+        font-size: 1rem;
+    }
+
+    .main .block-container,
+    div[data-testid="stMainBlockContainer"] {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        padding-bottom: 1.5rem !important;
+    }
+
+    .page-header .page-title {
+        font-size: 1.3rem;
+    }
+
+    .memo-container {
+        padding: 1.2rem 1.1rem;
+    }
+
+    /* Fixed-pixel HTML grids (competitor table, memo bull/bear case) are
+       built as inline styles in the page source — !important is required
+       here to win over the inline style attribute itself. */
+    .bull-bear-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+
+    .competitor-row-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.3rem !important;
+    }
 }
 </style>
 """
