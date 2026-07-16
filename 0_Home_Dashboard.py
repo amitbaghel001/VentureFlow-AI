@@ -84,7 +84,7 @@ with visual_col:
 # ── Live Market Signals ────────────────────────────────────────────────────────
 st.markdown(
     """
-    <div class="live-signals-bar" style="display: flex; gap: 1.5rem; margin-top: 0.5rem; margin-bottom: 1.4rem; padding: 0.7rem 1.1rem; background: #FFFFFF; border: 1px solid #E4E0D6; border-left: 3px solid #6C5CE0; border-radius: 5px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #5B5A66;">
+    <div class="live-signals-bar" style="display: flex; margin-top: 0.5rem; margin-bottom: 1.4rem; padding: 0.7rem 1.1rem; background: #FFFFFF; border: 1px solid #E4E0D6; border-left: 3px solid #6C5CE0; border-radius: 5px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #5B5A66;">
         <span style="color: #6C5CE0; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;">Live Market Signals</span>
         <span style="color: #2F7D5C; font-weight: 600;">AI Lending ↑</span>
         <span style="color: #2F7D5C; font-weight: 600;">Voice Infrastructure ↑</span>

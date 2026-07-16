@@ -780,6 +780,20 @@ hr {
 }
 
 /* ═══════════════════════════════════════════════
+   LIVE MARKET SIGNALS BAR (home dashboard)
+   Wraps onto multiple lines at any width once its 5 items
+   run out of room, instead of only fixing that at a single
+   mobile breakpoint and leaving a cramped 1.5rem gap at
+   every window size in between.
+═══════════════════════════════════════════════ */
+.live-signals-bar {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 0.5rem;
+    column-gap: 1.75rem;
+}
+
+/* ═══════════════════════════════════════════════
    MOBILE / NARROW VIEWPORT (≤640px, Streamlit's own
    breakpoint for stacking st.columns into full-width
    rows). That default is correct for two-column content
@@ -841,13 +855,6 @@ hr {
     .competitor-row-grid {
         grid-template-columns: 1fr !important;
         gap: 0.3rem !important;
-    }
-
-    /* Home dashboard's "Live Market Signals" strip — a single-row flex of
-       5 items with no wrap, wider than any phone viewport as authored. */
-    .live-signals-bar {
-        flex-wrap: wrap !important;
-        gap: 0.4rem 1rem !important;
     }
 }
 </style>
